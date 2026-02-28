@@ -1,0 +1,75 @@
+{
+  "name": "vscode-copilot-bridge",
+  "displayName": "Copilot Bridge",
+  "description": "Expose VS Code Copilot language model chat to local external programs.",
+  "version": "0.1.0",
+  "publisher": "internal",
+  "private": true,
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:copilotBridge.rotateToken",
+    "onCommand:copilotBridge.exportLogs"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilotBridge.rotateToken",
+        "title": "Copilot Bridge: Rotate Token"
+      },
+      {
+        "command": "copilotBridge.exportLogs",
+        "title": "Copilot Bridge: Export Logs"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot Bridge",
+      "properties": {
+        "copilotBridge.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Copilot Bridge server."
+        },
+        "copilotBridge.port": {
+          "type": "number",
+          "default": 8761,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "WebSocket port for Copilot Bridge on 127.0.0.1."
+        },
+        "copilotBridge.authToken": {
+          "type": "string",
+          "default": "",
+          "description": "Bearer token required by local clients."
+        },
+        "copilotBridge.workspaceRole": {
+          "type": "string",
+          "default": "default",
+          "description": "Role label used by orchestrators to route requests."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "lint": "tsc -p . --noEmit",
+    "test": "node --test out/test/**/*.test.js",
+    "pretest": "npm run build"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "@types/vscode": "^1.110.0",
+    "@types/ws": "^8.18.0",
+    "typescript": "^5.8.2"
+  }
+}
