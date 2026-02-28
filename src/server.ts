@@ -12,6 +12,7 @@ export interface BridgeRuntimeInfo {
   workspaceRoot: string;
   workspaceRole: string;
   port: number;
+  capabilities: string[];
 }
 
 export interface RequestHandler {
@@ -38,7 +39,8 @@ export class BridgeServer implements vscode.Disposable {
       windowId: this.windowId,
       workspaceRoot: root,
       workspaceRole: this.cfg.workspaceRole,
-      port: address?.port ?? this.cfg.port
+      port: address?.port ?? this.cfg.port,
+      capabilities: ["streaming", "resetSession", "modelSelection", "traceHops", "dedupe"]
     };
   }
 

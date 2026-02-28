@@ -6,11 +6,13 @@ import { BridgeServer } from "./server";
 import { BridgeRequest, BridgeErrorEvent } from "./types";
 import { BridgeService } from "./bridgeService";
 import { SessionStore } from "./sessionStore";
+import { DedupeCache } from "./dedupeCache";
 
 let server: BridgeServer | undefined;
 const logger = new BridgeLogger();
 const sessions = new SessionStore();
 const bridge = new BridgeService(sessions);
+const dedupe = new DedupeCache(2 * 60 * 1000);
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const cfg = loadConfig();
@@ -48,6 +50,44 @@ export function deactivate(): Thenable<void> | undefined {
 }
 
 async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void> {
+  const info = server?.info();
+  if (!info) {
+    sendError(socket, req.requestId, "E_INTERNAL", "Bridge not initialized", req.traceId);
+    return;
+  }
+
+  if (req.toRole && req.toRole !== info.workspaceRole) {
+    sendError(
+      socket,
+      req.requestId,
+      "E_BAD_REQUEST",
+      `Request routed to role '${req.toRole}', but this bridge serves '${info.workspaceRole}'`,
+      req.traceId
+    );
+    return;
+  }
+
+  const hops = req.hops ?? 0;
+  const maxHops = req.maxHops ?? 2;
+  if (hops > maxHops) {
+    sendError(socket, req.requestId, "E_BAD_REQUEST", "Hop count exceeded maxHops", req.traceId);
+    return;
+  }
+
+  if (req.originBridgeId && req.originBridgeId === info.bridgeId && hops > 0) {
+    sendError(socket, req.requestId, "E_BAD_REQUEST", "Immediate bounce-back is blocked", req.traceId);
+    return;
+  }
+
+  if (req.traceId && req.fromAgent) {
+    const key = `${req.fromAgent}:${req.traceId}`;
+    if (dedupe.has(key)) {
+      sendError(socket, req.requestId, "E_BAD_REQUEST", "Duplicate traceId", req.traceId);
+      return;
+    }
+    dedupe.add(key);
+  }
+
   const started = Date.now();
   if (req.type === "ping") {
     socket.send(JSON.stringify({ type: "pong", requestId: req.requestId, traceId: req.traceId }));
@@ -67,7 +107,7 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
         type: "done",
         requestId: req.requestId,
         traceId: req.traceId,
-        text: JSON.stringify(server?.info() ?? {})
+        text: JSON.stringify(info)
       })
     );
     return;
