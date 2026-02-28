@@ -14,21 +14,27 @@ export class RateLimiter {
 
   allow(key: string): boolean {
     const now = Date.now();
-    if (!this.bump(this.globalWindow, now, this.perMinuteGlobal)) {
+    this.ensureFresh(this.globalWindow, now);
+    const entry = this.perKey.get(key) ?? { startedAt: 0, count: 0 };
+    this.ensureFresh(entry, now);
+
+    if (this.globalWindow.count + 1 > this.perMinuteGlobal) {
       return false;
     }
-    const entry = this.perKey.get(key) ?? { startedAt: 0, count: 0 };
-    const allowed = this.bump(entry, now, this.perMinutePerKey);
+    if (entry.count + 1 > this.perMinutePerKey) {
+      return false;
+    }
+
+    this.globalWindow.count += 1;
+    entry.count += 1;
     this.perKey.set(key, entry);
-    return allowed;
+    return true;
   }
 
-  private bump(window: CounterWindow, now: number, cap: number): boolean {
+  private ensureFresh(window: CounterWindow, now: number): void {
     if (!window.startedAt || now - window.startedAt >= 60_000) {
       window.startedAt = now;
       window.count = 0;
     }
-    window.count += 1;
-    return window.count <= cap;
   }
 }

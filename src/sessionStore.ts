@@ -64,14 +64,21 @@ export class SessionStore {
 function sumMessageChars(messages: ChatMessage[]): number {
   let total = 0;
   for (const msg of messages) {
-    const content = msg.content;
+    const content = msg.content as unknown;
     if (typeof content === "string") {
       total += content.length;
-    } else if (Array.isArray(content)) {
-      for (const part of content) {
-        if ("value" in part && typeof part.value === "string") {
-          total += part.value.length;
-        }
+      continue;
+    }
+    if (!Array.isArray(content)) {
+      continue;
+    }
+    for (const part of content) {
+      if (!part || typeof part !== "object" || !("value" in part)) {
+        continue;
+      }
+      const value = (part as { value?: unknown }).value;
+      if (typeof value === "string") {
+        total += value.length;
       }
     }
   }

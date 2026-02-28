@@ -60,7 +60,7 @@
     "build": "tsc -p .",
     "watch": "tsc -w -p .",
     "lint": "tsc -p . --noEmit",
-    "test": "node --test out/test/**/*.test.js",
+    "test": "node out/test/run-tests.js",
     "pretest": "npm run build"
   },
   "dependencies": {
@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "^1.109.0",
     "@types/ws": "^8.18.0",
     "typescript": "^5.8.2"
   }
