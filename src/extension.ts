@@ -7,12 +7,19 @@ import { BridgeRequest, BridgeErrorEvent } from "./types";
 import { BridgeService } from "./bridgeService";
 import { SessionStore } from "./sessionStore";
 import { DedupeCache } from "./dedupeCache";
+import { RateLimiter } from "./rateLimiter";
 
 let server: BridgeServer | undefined;
 const logger = new BridgeLogger();
 const sessions = new SessionStore();
 const bridge = new BridgeService(sessions);
 const dedupe = new DedupeCache(2 * 60 * 1000);
+const limiter = new RateLimiter(120, 20);
+const inFlight = new Map<string, vscode.CancellationTokenSource>();
+const startTime = Date.now();
+const DEFAULT_TIMEOUT_MS = 90_000;
+const MAX_TIMEOUT_MS = 300_000;
+const MAX_PROMPT_CHARS = 50_000;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const cfg = loadConfig();
@@ -20,8 +27,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     return;
   }
 
-  server = new BridgeServer(cfg, async (socket, req) => {
-    await routeRequest(socket, req);
+  server = new BridgeServer(cfg, async (socket, req, clientId) => {
+    await routeRequest(socket, req, clientId);
   });
   await server.start();
 
@@ -49,7 +56,7 @@ export function deactivate(): Thenable<void> | undefined {
   return server?.stop();
 }
 
-async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void> {
+async function routeRequest(socket: WebSocket, req: BridgeRequest, clientId = "local"): Promise<void> {
   const info = server?.info();
   if (!info) {
     sendError(socket, req.requestId, "E_INTERNAL", "Bridge not initialized", req.traceId);
@@ -90,7 +97,15 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
 
   const started = Date.now();
   if (req.type === "ping") {
-    socket.send(JSON.stringify({ type: "pong", requestId: req.requestId, traceId: req.traceId }));
+    socket.send(
+      JSON.stringify({
+        type: "pong",
+        requestId: req.requestId,
+        traceId: req.traceId,
+        status: "ok",
+        uptimeMs: Date.now() - startTime
+      })
+    );
     logger.record({
       ts: new Date().toISOString(),
       requestId: req.requestId,
@@ -140,6 +155,10 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
   }
 
   if (req.type === "cancel") {
+    const running = inFlight.get(req.requestId);
+    if (running) {
+      running.cancel();
+    }
     sendError(socket, req.requestId, "E_CANCELLED", "Request cancelled", req.traceId);
     return;
   }
@@ -149,11 +168,29 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
       sendError(socket, req.requestId, "E_BAD_REQUEST", "ask requires sessionId and prompt", req.traceId);
       return;
     }
+    if (req.prompt.length > MAX_PROMPT_CHARS) {
+      sendError(socket, req.requestId, "E_BAD_REQUEST", `prompt exceeds ${MAX_PROMPT_CHARS} chars`, req.traceId);
+      return;
+    }
+    if (!limiter.allow(`${clientId}:${req.sessionId}`)) {
+      sendError(socket, req.requestId, "E_RATE_LIMIT", "Rate limit exceeded", req.traceId);
+      return;
+    }
+
+    const timeoutMs = clampTimeout(req.timeoutMs);
+    const cts = new vscode.CancellationTokenSource();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      cts.cancel();
+    }, timeoutMs);
+    inFlight.set(req.requestId, cts);
+
     socket.send(JSON.stringify({ type: "ack", requestId: req.requestId, traceId: req.traceId }));
 
     try {
       const result = await bridge.ask(
-        { sessionId: req.sessionId, prompt: req.prompt, modelId: req.modelId },
+        { sessionId: req.sessionId, prompt: req.prompt, modelId: req.modelId, token: cts.token },
         (chunk) => {
           socket.send(JSON.stringify({ type: "delta", requestId: req.requestId, traceId: req.traceId, chunk }));
         }
@@ -177,6 +214,7 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
         modelId: result.modelId
       });
     } catch (err) {
+      const cancelled = cts.token.isCancellationRequested;
       const msg = err instanceof Error ? err.message : "";
       if (msg === "E_NO_MODEL") {
         sendError(
@@ -186,6 +224,10 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
           "No Copilot model available. Sign in to Copilot and ensure model access.",
           req.traceId
         );
+      } else if (cancelled && timedOut) {
+        sendError(socket, req.requestId, "E_TIMEOUT", `Request timed out after ${timeoutMs}ms`, req.traceId);
+      } else if (cancelled) {
+        sendError(socket, req.requestId, "E_CANCELLED", "Request cancelled", req.traceId);
       } else {
         sendError(
           socket,
@@ -201,8 +243,12 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
         sessionHash: BridgeLogger.hashSessionId(req.sessionId),
         status: "error",
         durationMs: Date.now() - started,
-        errorCode: msg === "E_NO_MODEL" ? "E_NO_MODEL" : "E_MODEL_REQUEST_FAILED"
+        errorCode: msg === "E_NO_MODEL" ? "E_NO_MODEL" : cancelled && timedOut ? "E_TIMEOUT" : cancelled ? "E_CANCELLED" : "E_MODEL_REQUEST_FAILED"
       });
+    } finally {
+      clearTimeout(timer);
+      inFlight.delete(req.requestId);
+      cts.dispose();
     }
   }
 }
@@ -215,4 +261,14 @@ function sendError(
   traceId?: string
 ): void {
   socket.send(JSON.stringify({ type: "error", requestId, code, message, traceId }));
+}
+
+function clampTimeout(timeoutMs?: number): number {
+  if (!timeoutMs || Number.isNaN(timeoutMs)) {
+    return DEFAULT_TIMEOUT_MS;
+  }
+  if (timeoutMs < 1) {
+    return DEFAULT_TIMEOUT_MS;
+  }
+  return Math.min(timeoutMs, MAX_TIMEOUT_MS);
 }

@@ -5,6 +5,7 @@ export interface AskInput {
   sessionId: string;
   prompt: string;
   modelId?: string;
+  token?: vscode.CancellationToken;
 }
 
 export interface AskResult {
@@ -32,7 +33,7 @@ export class BridgeService {
       vscode.LanguageModelChatMessage.User(input.prompt)
     ];
 
-    const response = await model.sendRequest(requestMessages, {});
+    const response = await model.sendRequest(requestMessages, {}, input.token);
     let text = "";
     for await (const part of response.stream) {
       if (part instanceof vscode.LanguageModelTextPart) {

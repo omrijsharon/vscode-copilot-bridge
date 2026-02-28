@@ -11,6 +11,17 @@ VS Code extension that exposes Copilot language model chat to local external cli
 
 - `ws://127.0.0.1:<port>/bridge/v1`
 - Bearer auth required
+- Requests: `ask | reset | cancel | info | models | ping`
+- Health check: send `ping` and expect `pong`
+- Model status: send `models`
+
+## Hardening Defaults
+
+- Local bind only: `127.0.0.1`
+- Prompt size cap: `50000` chars
+- Timeout: default `90000ms`, max `300000ms`
+- Rate limits: global `120/min`, per-session `20/min`
+- Logs: metadata-only ring buffer (500 entries)
 
 ## Example Client
 

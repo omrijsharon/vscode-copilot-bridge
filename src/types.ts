@@ -16,6 +16,11 @@ export interface BridgeRequest {
   originBridgeId?: string;
 }
 
+export interface AuthMessage {
+  type: "auth";
+  token: string;
+}
+
 export type BridgeEventType = "ack" | "delta" | "done" | "error" | "pong";
 
 export interface BridgeEventBase {

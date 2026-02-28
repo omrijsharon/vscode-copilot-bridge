@@ -16,7 +16,7 @@ export interface BridgeRuntimeInfo {
 }
 
 export interface RequestHandler {
-  (socket: WebSocket, req: BridgeRequest): Promise<void>;
+  (socket: WebSocket, req: BridgeRequest, clientId: string): Promise<void>;
 }
 
 export class BridgeServer implements vscode.Disposable {
@@ -60,20 +60,30 @@ export class BridgeServer implements vscode.Disposable {
       const token = authHeader.toLowerCase().startsWith("bearer ")
         ? authHeader.slice("bearer ".length).trim()
         : "";
-      if (!this.cfg.authToken || token !== this.cfg.authToken) {
-        socket.send(JSON.stringify(buildError("unknown", "E_UNAUTHORIZED", "Invalid bearer token")));
-        socket.close(1008, "Unauthorized");
-        return;
-      }
+      let authenticated = !!this.cfg.authToken && token === this.cfg.authToken;
+      const clientId = `${req.socket.remoteAddress ?? "local"}:${req.socket.remotePort ?? 0}`;
 
       socket.on("message", async (raw) => {
+        const asText = raw.toString();
+        if (!authenticated) {
+          const auth = parseAuthMessage(asText);
+          if (auth && auth.token === this.cfg.authToken) {
+            authenticated = true;
+            socket.send(JSON.stringify({ type: "ack", requestId: "auth" }));
+            return;
+          }
+          socket.send(JSON.stringify(buildError("unknown", "E_UNAUTHORIZED", "Invalid bearer token")));
+          socket.close(1008, "Unauthorized");
+          return;
+        }
+
         const parsed = parseRequest(raw.toString());
         if (!parsed) {
           socket.send(JSON.stringify(buildError("unknown", "E_BAD_REQUEST", "Malformed request envelope")));
           return;
         }
         try {
-          await this.handleRequest(socket, parsed);
+          await this.handleRequest(socket, parsed, clientId);
         } catch (err) {
           const message = err instanceof Error ? err.message : "Internal error";
           socket.send(JSON.stringify(buildError(parsed.requestId, "E_INTERNAL", message, parsed.traceId)));
@@ -108,4 +118,16 @@ function buildError(
   traceId?: string
 ): BridgeErrorEvent {
   return { type: "error", requestId, code, message, traceId };
+}
+
+function parseAuthMessage(raw: string): { type: "auth"; token: string } | undefined {
+  try {
+    const obj = JSON.parse(raw);
+    if (obj && obj.type === "auth" && typeof obj.token === "string") {
+      return obj;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
 }
