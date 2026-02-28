@@ -2,6 +2,11 @@
 
 VS Code extension that exposes Copilot language model chat to local external clients via WebSocket.
 
+## Documentation
+
+- Installation: [docs/INSTALLATION.md](docs/INSTALLATION.md)
+- Protocol/API for external programs: [docs/BRIDGE_PROTOCOL.md](docs/BRIDGE_PROTOCOL.md)
+
 ## Development
 
 - `npm install`

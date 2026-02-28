@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "publisher": "internal",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/omrijsharon/vscode-copilot-bridge.git"
+  },
   "engines": {
     "vscode": "^1.110.0"
   },
@@ -70,6 +74,7 @@
     "@types/node": "^22.13.14",
     "@types/vscode": "^1.109.0",
     "@types/ws": "^8.18.0",
+    "@vscode/vsce": "^3.7.1",
     "typescript": "^5.8.2"
   }
 }
