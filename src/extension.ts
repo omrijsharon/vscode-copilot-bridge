@@ -4,9 +4,13 @@ import { loadConfig, rotateToken } from "./config";
 import { BridgeLogger } from "./logger";
 import { BridgeServer } from "./server";
 import { BridgeRequest, BridgeErrorEvent } from "./types";
+import { BridgeService } from "./bridgeService";
+import { SessionStore } from "./sessionStore";
 
 let server: BridgeServer | undefined;
 const logger = new BridgeLogger();
+const sessions = new SessionStore();
+const bridge = new BridgeService(sessions);
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const cfg = loadConfig();
@@ -70,19 +74,28 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
   }
 
   if (req.type === "models") {
+    const models = await bridge.listModels();
     socket.send(
       JSON.stringify({
         type: "done",
         requestId: req.requestId,
         traceId: req.traceId,
-        text: JSON.stringify([])
+        text: JSON.stringify(models)
       })
     );
     return;
   }
 
   if (req.type === "reset") {
-    socket.send(JSON.stringify({ type: "done", requestId: req.requestId, traceId: req.traceId, text: "ok" }));
+    const count = bridge.reset(req.sessionId);
+    socket.send(
+      JSON.stringify({
+        type: "done",
+        requestId: req.requestId,
+        traceId: req.traceId,
+        text: JSON.stringify({ cleared: count })
+      })
+    );
     return;
   }
 
@@ -92,15 +105,65 @@ async function routeRequest(socket: WebSocket, req: BridgeRequest): Promise<void
   }
 
   if (req.type === "ask") {
-    socket.send(
-      JSON.stringify({
-        type: "error",
+    if (!req.sessionId || !req.prompt) {
+      sendError(socket, req.requestId, "E_BAD_REQUEST", "ask requires sessionId and prompt", req.traceId);
+      return;
+    }
+    socket.send(JSON.stringify({ type: "ack", requestId: req.requestId, traceId: req.traceId }));
+
+    try {
+      const result = await bridge.ask(
+        { sessionId: req.sessionId, prompt: req.prompt, modelId: req.modelId },
+        (chunk) => {
+          socket.send(JSON.stringify({ type: "delta", requestId: req.requestId, traceId: req.traceId, chunk }));
+        }
+      );
+
+      socket.send(
+        JSON.stringify({
+          type: "done",
+          requestId: req.requestId,
+          traceId: req.traceId,
+          text: result.text,
+          modelId: result.modelId
+        })
+      );
+      logger.record({
+        ts: new Date().toISOString(),
         requestId: req.requestId,
-        traceId: req.traceId,
-        code: "E_MODEL_REQUEST_FAILED",
-        message: "ask is not implemented yet"
-      })
-    );
+        sessionHash: BridgeLogger.hashSessionId(req.sessionId),
+        status: "ok",
+        durationMs: Date.now() - started,
+        modelId: result.modelId
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg === "E_NO_MODEL") {
+        sendError(
+          socket,
+          req.requestId,
+          "E_NO_MODEL",
+          "No Copilot model available. Sign in to Copilot and ensure model access.",
+          req.traceId
+        );
+      } else {
+        sendError(
+          socket,
+          req.requestId,
+          "E_MODEL_REQUEST_FAILED",
+          err instanceof Error ? err.message : "Model request failed",
+          req.traceId
+        );
+      }
+      logger.record({
+        ts: new Date().toISOString(),
+        requestId: req.requestId,
+        sessionHash: BridgeLogger.hashSessionId(req.sessionId),
+        status: "error",
+        durationMs: Date.now() - started,
+        errorCode: msg === "E_NO_MODEL" ? "E_NO_MODEL" : "E_MODEL_REQUEST_FAILED"
+      });
+    }
   }
 }
 
