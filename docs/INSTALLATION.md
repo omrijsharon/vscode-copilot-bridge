@@ -8,14 +8,16 @@
 
 ## 2) Install the Extension (VSIX)
 
-1. Build/package:
-   - `npm install`
-   - `npm run build`
+1. Build/package (PowerShell):
+   - `npm.cmd install`
+   - `npm.cmd run build`
    - `node .\\node_modules\\@vscode\\vsce\\vsce package`
 2. In VS Code:
    - Open Extensions view
    - `...` menu -> `Install from VSIX...`
    - Select `vscode-copilot-bridge-0.1.0.vsix`
+   - Default output path:
+     - `C:\Users\tamipinhasi\Documents\repos\vscode-copilot-bridge\vscode-copilot-bridge-0.1.0.vsix`
 
 ## 3) Configure the Bridge
 
@@ -66,6 +68,9 @@ Server emits:
 
 ## 6) Troubleshooting
 
+- `Unable to install ... not compatible with VS Code '1.100.2'`:
+  - This extension currently requires VS Code `>= 1.110.0`.
+  - Upgrade VS Code, then retry install from VSIX.
 - `E_NO_MODEL`: sign in to Copilot and verify model availability.
 - `E_UNAUTHORIZED`: token mismatch.
 - `E_RATE_LIMIT`: reduce request frequency.

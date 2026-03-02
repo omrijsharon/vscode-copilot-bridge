@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "publisher": "internal",
   "private": true,
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/omrijsharon/vscode-copilot-bridge.git"
