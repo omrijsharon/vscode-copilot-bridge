@@ -1,0 +1,18 @@
+{
+  "wsUrl": "ws://127.0.0.1:4500",
+  "createdAt": "2026-03-06T19:32:26.459Z",
+  "rows": [
+    {
+      "threadId": "019ca120-ec15-7510-adf5-b580858e1e2a",
+      "probeId": "668998",
+      "conversationName": "",
+      "status": "sent"
+    },
+    {
+      "threadId": "019c904f-8208-7b81-8fdd-c11c8ff900fb",
+      "probeId": "232490",
+      "conversationName": "",
+      "status": "sent"
+    }
+  ]
+}

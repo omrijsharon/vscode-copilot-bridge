@@ -1,1 +1,0 @@
-Build VSCode Copilot bridge

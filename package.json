@@ -1,81 +1,30 @@
 {
-  "name": "vscode-copilot-bridge",
-  "displayName": "Copilot Bridge",
-  "description": "Expose VS Code Copilot language model chat to local external programs.",
+  "name": "codex-remote-relay",
+  "description": "Authenticated local relay and remote web client for Codex app-server.",
   "version": "0.1.0",
-  "publisher": "internal",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/omrijsharon/vscode-copilot-bridge.git"
   },
-  "engines": {
-    "vscode": "^1.110.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onStartupFinished",
-    "onCommand:copilotBridge.rotateToken",
-    "onCommand:copilotBridge.exportLogs"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "copilotBridge.rotateToken",
-        "title": "Copilot Bridge: Rotate Token"
-      },
-      {
-        "command": "copilotBridge.exportLogs",
-        "title": "Copilot Bridge: Export Logs"
-      }
-    ],
-    "configuration": {
-      "title": "Copilot Bridge",
-      "properties": {
-        "copilotBridge.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable the Copilot Bridge server."
-        },
-        "copilotBridge.port": {
-          "type": "number",
-          "default": 8761,
-          "minimum": 1,
-          "maximum": 65535,
-          "description": "WebSocket port for Copilot Bridge on 127.0.0.1."
-        },
-        "copilotBridge.authToken": {
-          "type": "string",
-          "default": "",
-          "description": "Bearer token required by local clients."
-        },
-        "copilotBridge.workspaceRole": {
-          "type": "string",
-          "default": "default",
-          "description": "Role label used by orchestrators to route requests."
-        }
-      }
-    }
-  },
+  "main": "./out/relay/server.js",
   "scripts": {
     "build": "tsc -p .",
     "watch": "tsc -w -p .",
     "lint": "tsc -p . --noEmit",
-    "test": "node out/test/run-tests.js",
-    "pretest": "npm run build"
+    "start": "node out/relay/server.js",
+    "start:relay": "node out/relay/server.js",
+    "test": "npm.cmd run build"
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
+    "qrcode": "^1.5.4",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
-    "@types/vscode": "^1.109.0",
     "@types/ws": "^8.18.0",
-    "@vscode/vsce": "^3.7.1",
     "typescript": "^5.8.2"
   }
 }

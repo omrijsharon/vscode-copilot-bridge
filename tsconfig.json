@@ -13,8 +13,7 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "types": [
-      "node",
-      "vscode"
+      "node"
     ]
   },
   "include": [

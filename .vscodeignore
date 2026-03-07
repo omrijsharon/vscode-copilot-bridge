@@ -2,6 +2,8 @@
 .github/**
 .npm-cache/**
 node_modules/**
+!node_modules/ws/**
+!node_modules/ws/**/*
 src/**
 **/*.ts
 tsconfig.json

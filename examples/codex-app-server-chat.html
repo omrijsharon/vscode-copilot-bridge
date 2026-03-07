@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex App-Server Chat</title>
+    <style>
+      :root {
+        --bg: #f1eadf;
+        --panel: #f8f4ec;
+        --paper: #fffdf8;
+        --ink: #1f1a17;
+        --muted: #76685d;
+        --line: #d9cdbd;
+        --accent: #1f5c49;
+        --accent-strong: #123a2f;
+        --warm: #a44b27;
+        --error: #9d2925;
+        --shadow: rgba(44, 31, 20, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top right, rgba(164, 75, 39, 0.12), transparent 35%),
+          radial-gradient(circle at top left, rgba(31, 92, 73, 0.12), transparent 28%),
+          linear-gradient(180deg, #ede3d6, var(--bg));
+        overflow: hidden;
+      }
+
+      .frame {
+        max-width: 1220px;
+        margin: 22px auto;
+        padding: 0 16px;
+        height: calc(100vh - 44px);
+      }
+
+      .shell {
+        height: 100%;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255, 253, 248, 0.95), rgba(248, 244, 236, 0.98));
+        box-shadow: 0 24px 60px var(--shadow);
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .hero {
+        padding: 24px 28px 18px;
+        border-bottom: 1px solid var(--line);
+        background:
+          linear-gradient(130deg, rgba(31, 92, 73, 0.16), rgba(255, 253, 248, 0.35)),
+          linear-gradient(180deg, rgba(255, 250, 244, 0.8), rgba(248, 244, 236, 0.94));
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--muted);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.08;
+      }
+
+      .hero p {
+        margin: 10px 0 0;
+        max-width: 900px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        min-height: 0;
+        height: 100%;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        padding: 22px;
+        background: rgba(248, 244, 236, 0.72);
+        overflow: auto;
+      }
+
+      .main {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .panel {
+        margin-bottom: 18px;
+      }
+
+      .panel:last-child {
+        margin-bottom: 0;
+      }
+
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+      }
+
+      .stack {
+        display: grid;
+        gap: 8px;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+        color: var(--ink);
+        padding: 11px 12px;
+        font: inherit;
+      }
+
+      input,
+      select,
+      textarea {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      }
+
+      textarea {
+        min-height: 88px;
+        resize: vertical;
+      }
+
+      button {
+        width: auto;
+        cursor: pointer;
+        color: #f8f4ec;
+        border-color: var(--accent);
+        background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+      }
+
+      button.secondary {
+        color: var(--ink);
+        border-color: var(--line);
+        background: transparent;
+      }
+
+      button:disabled,
+      input:disabled,
+      select:disabled,
+      textarea:disabled {
+        opacity: 0.58;
+        cursor: not-allowed;
+      }
+
+      .statusbox {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: rgba(255, 253, 248, 0.85);
+      }
+
+      .statusline {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .statusline:last-child {
+        margin-bottom: 0;
+      }
+
+      .ok {
+        color: var(--accent);
+      }
+
+      .err {
+        color: var(--error);
+      }
+
+      .threadmeta {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 253, 248, 0.78);
+      }
+
+      .threadtitle {
+        margin: 0 0 4px;
+        font-size: 22px;
+      }
+
+      .threadsub {
+        margin: 0;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .transcript {
+        padding: 18px;
+        overflow: auto;
+        min-height: 0;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 12%),
+          linear-gradient(180deg, #fffdfa, #f8f4ec 55%, #f7f2ea);
+      }
+
+      .empty {
+        max-width: 660px;
+        padding: 18px;
+        border: 1px dashed var(--line);
+        border-radius: 18px;
+        color: var(--muted);
+        background: rgba(255, 253, 248, 0.82);
+      }
+
+      .msg {
+        max-width: 860px;
+        margin-bottom: 14px;
+      }
+
+      .msg.user {
+        margin-left: auto;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px 16px;
+        background: rgba(255, 253, 248, 0.96);
+        box-shadow: 0 6px 18px rgba(44, 31, 20, 0.05);
+      }
+
+      .msg.user .card {
+        background: linear-gradient(180deg, rgba(31, 92, 73, 0.12), rgba(255, 253, 248, 0.96));
+      }
+
+      .msg.assistant .card {
+        background: linear-gradient(180deg, rgba(164, 75, 39, 0.08), rgba(255, 253, 248, 0.96));
+      }
+
+      .labelrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .label {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .badge {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 11px;
+        color: var(--muted);
+        background: rgba(255, 253, 248, 0.7);
+      }
+
+      .body {
+        white-space: pre-wrap;
+        line-height: 1.55;
+        word-break: break-word;
+      }
+
+      .composer {
+        border-top: 1px solid var(--line);
+        padding: 16px 18px 18px;
+        background: rgba(248, 244, 236, 0.82);
+      }
+
+      .composer .row:last-child {
+        margin-bottom: 0;
+      }
+
+      .hint {
+        margin-top: 8px;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+
+      .mono {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+      }
+
+      @media (max-width: 960px) {
+        body {
+          overflow: auto;
+        }
+
+        .frame {
+          height: auto;
+          margin: 12px auto;
+        }
+
+        .shell {
+          height: auto;
+        }
+
+        .layout {
+          grid-template-columns: 1fr;
+          height: auto;
+        }
+
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          overflow: visible;
+        }
+
+        .main {
+          overflow: visible;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div class="shell">
+        <header class="hero">
+          <p class="eyebrow">Codex App-Server</p>
+          <h1>Thread Chat</h1>
+          <p>
+            This page talks directly to <span class="mono">codex app-server</span>. It lists real Codex threads,
+            loads history from <span class="mono">thread/read</span>, and continues the same thread with
+            <span class="mono">turn/start</span>. It does not depend on the old bridge or on local JSONL parsing.
+          </p>
+        </header>
+
+        <div class="layout">
+          <aside class="sidebar">
+            <section class="panel">
+              <h2>Connection</h2>
+              <div class="stack">
+                <input id="wsUrl" value="ws://127.0.0.1:4500" />
+                <div class="row">
+                  <button id="connectBtn">Connect</button>
+                  <button id="disconnectBtn" class="secondary">Disconnect</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>Threads</h2>
+              <div class="stack">
+                <div class="row">
+                  <button id="refreshThreadsBtn" class="secondary">Refresh Threads</button>
+                  <button id="newThreadBtn" class="secondary">New Thread</button>
+                </div>
+                <select id="threadSelect" size="10"></select>
+                <input id="threadId" placeholder="Selected thread id" />
+                <div class="row">
+                  <button id="loadThreadBtn">Load Selected Thread</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>Status</h2>
+              <div class="statusbox">
+                <p class="statusline" id="statusLine">Disconnected</p>
+                <p class="statusline mono" id="socketLine"></p>
+                <p class="statusline mono" id="threadLine"></p>
+                <p class="statusline mono" id="infoLine"></p>
+              </div>
+            </section>
+          </aside>
+
+          <section class="main">
+            <div class="threadmeta">
+              <h2 class="threadtitle" id="threadName">No thread loaded</h2>
+              <p class="threadsub" id="threadSummary">
+                Connect to app-server, refresh threads, and load one thread to render its history.
+              </p>
+            </div>
+
+            <div class="transcript" id="transcript">
+              <div class="empty" id="emptyState">
+                No thread transcript loaded yet. This page reads history from app-server and keeps the selected
+                thread as the single source of truth.
+              </div>
+            </div>
+
+            <div class="composer">
+              <div class="row">
+                <textarea id="prompt" placeholder="Write a message to the selected Codex thread..."></textarea>
+              </div>
+              <div class="row">
+                <button id="sendBtn">Send</button>
+                <button id="reloadThreadBtn" class="secondary">Reload Current Thread</button>
+              </div>
+              <div class="hint">
+                If no thread is selected, the page will start a new thread on first send and then keep using it.
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+
+      let socket = null;
+      let rpcId = 0;
+      let currentThreadId = "";
+      let currentThread = null;
+      let initialized = false;
+      let currentAssistantStream = null;
+      const pending = new Map();
+
+      function setStatus(text, cls = "") {
+        el("statusLine").className = `statusline ${cls}`.trim();
+        el("statusLine").textContent = text;
+      }
+
+      function setSocketLine(text = "") {
+        el("socketLine").textContent = text;
+      }
+
+      function setThreadLine(text = "") {
+        el("threadLine").textContent = text;
+      }
+
+      function setInfoLine(text = "", cls = "") {
+        el("infoLine").className = `statusline mono ${cls}`.trim();
+        el("infoLine").textContent = text;
+      }
+
+      function clearTranscript() {
+        el("transcript").innerHTML = "";
+      }
+
+      function showEmpty(text) {
+        clearTranscript();
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = text;
+        el("transcript").appendChild(empty);
+      }
+
+      function escapeText(value) {
+        return value == null ? "" : String(value);
+      }
+
+      function appendMessage(role, text, options = {}) {
+        const transcript = el("transcript");
+        const existingEmpty = el("emptyState");
+        if (existingEmpty) {
+          existingEmpty.remove();
+        }
+
+        const wrapper = document.createElement("article");
+        wrapper.className = `msg ${role}`;
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const labelRow = document.createElement("div");
+        labelRow.className = "labelrow";
+
+        const label = document.createElement("span");
+        label.className = "label";
+        label.textContent = role === "user" ? "You" : "Assistant";
+        labelRow.appendChild(label);
+
+        if (options.phase) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = options.phase;
+          labelRow.appendChild(badge);
+        }
+
+        if (options.incomplete) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = "incomplete";
+          labelRow.appendChild(badge);
+        }
+
+        const body = document.createElement("div");
+        body.className = "body";
+        body.textContent = escapeText(text);
+
+        card.appendChild(labelRow);
+        card.appendChild(body);
+        wrapper.appendChild(card);
+        transcript.appendChild(wrapper);
+        transcript.scrollTop = transcript.scrollHeight;
+        return { wrapper, body };
+      }
+
+      function flattenTextContent(content) {
+        if (!Array.isArray(content)) {
+          return "";
+        }
+        return content
+          .map((part) => {
+            if (part?.type === "text") {
+              return part.text || "";
+            }
+            if (part?.text) {
+              return part.text;
+            }
+            return "";
+          })
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      function itemToMessages(item) {
+        if (!item || !item.type) {
+          return [];
+        }
+
+        if (item.type === "userMessage") {
+          const text = flattenTextContent(item.content);
+          return text ? [{ role: "user", text }] : [];
+        }
+
+        if (item.type === "agentMessage") {
+          const text = item.text || flattenTextContent(item.content);
+          return text ? [{ role: "assistant", text, phase: item.phase || "" }] : [];
+        }
+
+        return [];
+      }
+
+      function renderThread(thread) {
+        currentThread = thread || null;
+        currentThreadId = thread?.id || "";
+        el("threadId").value = currentThreadId;
+        setThreadLine(currentThreadId ? `threadId: ${currentThreadId}` : "");
+
+        el("threadName").textContent = thread?.name || "Untitled thread";
+        const summaryParts = [];
+        if (thread?.updatedAt) {
+          summaryParts.push(`updated: ${new Date(thread.updatedAt * 1000).toLocaleString()}`);
+        }
+        if (thread?.cwd) {
+          summaryParts.push(`cwd: ${thread.cwd}`);
+        }
+        if (thread?.path) {
+          summaryParts.push(`path: ${thread.path}`);
+        }
+        el("threadSummary").textContent = summaryParts.join(" | ") || "Thread loaded from app-server";
+
+        clearTranscript();
+
+        const turns = Array.isArray(thread?.turns) ? thread.turns : [];
+        let rendered = 0;
+        for (const turn of turns) {
+          for (const item of turn.items || []) {
+            const messages = itemToMessages(item);
+            for (const message of messages) {
+              appendMessage(message.role, message.text, { phase: message.phase });
+              rendered += 1;
+            }
+          }
+        }
+
+        if (!rendered) {
+          showEmpty("This thread loaded successfully, but there were no user or assistant messages to render.");
+        }
+      }
+
+      function setControlsConnected(connected) {
+        el("connectBtn").disabled = connected;
+        el("disconnectBtn").disabled = !connected;
+        el("refreshThreadsBtn").disabled = !connected;
+        el("newThreadBtn").disabled = !connected;
+        el("loadThreadBtn").disabled = !connected;
+        el("sendBtn").disabled = !connected;
+        el("reloadThreadBtn").disabled = !connected;
+        el("threadSelect").disabled = !connected;
+      }
+
+      function sendJson(payload) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          throw new Error("Socket is not connected");
+        }
+        socket.send(JSON.stringify(payload));
+      }
+
+      function callRpc(method, params = {}) {
+        const id = ++rpcId;
+        sendJson({ jsonrpc: "2.0", id, method, params });
+        return new Promise((resolve, reject) => {
+          pending.set(id, { resolve, reject, method });
+          setTimeout(() => {
+            const entry = pending.get(id);
+            if (!entry) {
+              return;
+            }
+            pending.delete(id);
+            reject(new Error(`RPC timeout for ${method}`));
+          }, 45000);
+        });
+      }
+
+      function notify(method, params = {}) {
+        sendJson({ jsonrpc: "2.0", method, params });
+      }
+
+      async function initializeServer() {
+        if (initialized) {
+          return;
+        }
+        await callRpc("initialize", {
+          clientInfo: {
+            name: "codex-app-server-chat",
+            title: "Codex App-Server Chat",
+            version: "0.1.0"
+          },
+          capabilities: {
+            experimentalApi: true
+          }
+        });
+        notify("notifications/initialized", {});
+        initialized = true;
+        setStatus("Connected to codex app-server", "ok");
+      }
+
+      function updateThreadSelect(threads) {
+        const select = el("threadSelect");
+        select.innerHTML = "";
+
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = threads.length
+          ? "Select a thread to load"
+          : "No threads returned by thread/list";
+        select.appendChild(placeholder);
+
+        for (const thread of threads) {
+          const option = document.createElement("option");
+          option.value = thread.id;
+          const title = thread.name || "(unnamed)";
+          const status = thread.status?.type ? ` | ${thread.status.type}` : "";
+          option.textContent = `${title} | ${thread.id}${status}`;
+          select.appendChild(option);
+        }
+
+        if (currentThreadId) {
+          select.value = currentThreadId;
+        }
+        setInfoLine(`threads found: ${threads.length}`);
+      }
+
+      async function refreshThreads() {
+        const result = await callRpc("thread/list", {});
+        const threads = Array.isArray(result?.data) ? result.data : [];
+        updateThreadSelect(threads);
+        return threads;
+      }
+
+      async function loadThread(threadId) {
+        if (!threadId) {
+          throw new Error("Choose a thread first");
+        }
+
+        await callRpc("thread/resume", { threadId });
+        const result = await callRpc("thread/read", {
+          threadId,
+          includeTurns: true
+        });
+        const thread = result?.thread || result;
+        if (!thread?.id) {
+          throw new Error("thread/read returned no thread object");
+        }
+        renderThread(thread);
+        setStatus("Thread loaded", "ok");
+      }
+
+      async function ensureThreadForSend() {
+        const manualThreadId = el("threadId").value.trim();
+        if (manualThreadId) {
+          if (manualThreadId !== currentThreadId) {
+            currentThreadId = manualThreadId;
+            setThreadLine(`threadId: ${currentThreadId}`);
+          }
+          await callRpc("thread/resume", { threadId: currentThreadId });
+          return currentThreadId;
+        }
+
+        if (currentThreadId) {
+          await callRpc("thread/resume", { threadId: currentThreadId });
+          return currentThreadId;
+        }
+
+        const result = await callRpc("thread/start", {});
+        const threadId = result?.threadId || result?.thread?.id || result?.id || "";
+        if (!threadId) {
+          throw new Error("thread/start did not return a thread id");
+        }
+
+        currentThreadId = threadId;
+        el("threadId").value = threadId;
+        setThreadLine(`threadId: ${threadId}`);
+        setInfoLine("Started a new thread");
+        return threadId;
+      }
+
+      function markStreamingIncomplete() {
+        if (!currentAssistantStream) {
+          return;
+        }
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = "incomplete";
+        currentAssistantStream.wrapper.querySelector(".labelrow").appendChild(badge);
+        currentAssistantStream = null;
+      }
+
+      function handleRpcResponse(msg) {
+        const entry = pending.get(msg.id);
+        if (!entry) {
+          return;
+        }
+        pending.delete(msg.id);
+        if (msg.error) {
+          entry.reject(new Error(msg.error.message || JSON.stringify(msg.error)));
+          return;
+        }
+        entry.resolve(msg.result);
+      }
+
+      function handleNotification(msg) {
+        const method = msg.method || "";
+        const params = msg.params || {};
+
+        if (method === "turn/started") {
+          currentAssistantStream = appendMessage("assistant", "", { incomplete: true });
+          return;
+        }
+
+        if (method === "item/agentMessage/delta") {
+          const delta = params.delta || params.textDelta || params.text || "";
+          if (!currentAssistantStream) {
+            currentAssistantStream = appendMessage("assistant", "", { incomplete: true });
+          }
+          currentAssistantStream.body.textContent += delta;
+          el("transcript").scrollTop = el("transcript").scrollHeight;
+          return;
+        }
+
+        if (method === "item/completed") {
+          const item = params.item;
+          const messages = itemToMessages(item);
+          if (messages.length && currentAssistantStream && !currentAssistantStream.body.textContent.trim()) {
+            currentAssistantStream.body.textContent = messages[0].text;
+            currentAssistantStream.wrapper.querySelectorAll(".badge").forEach((badge) => {
+              if (badge.textContent === "incomplete") {
+                badge.remove();
+              }
+            });
+            currentAssistantStream = null;
+            return;
+          }
+          return;
+        }
+
+        if (method === "turn/completed") {
+          if (currentAssistantStream) {
+            currentAssistantStream.wrapper.querySelectorAll(".badge").forEach((badge) => {
+              if (badge.textContent === "incomplete") {
+                badge.remove();
+              }
+            });
+            currentAssistantStream = null;
+          }
+          setStatus("Turn completed", "ok");
+          return;
+        }
+
+        if (method === "turn/failed" || method === "turn/error") {
+          markStreamingIncomplete();
+          setInfoLine(`${method}: ${params.message || "turn failed"}`, "err");
+          return;
+        }
+
+        if (method === "thread/updated" && params.threadId) {
+          currentThreadId = params.threadId;
+          el("threadId").value = params.threadId;
+          setThreadLine(`threadId: ${params.threadId}`);
+        }
+      }
+
+      function resetConnectionState() {
+        initialized = false;
+        socket = null;
+        rpcId = 0;
+        pending.clear();
+        currentAssistantStream = null;
+        setControlsConnected(false);
+        setStatus("Disconnected");
+        setSocketLine("");
+      }
+
+      el("threadSelect").addEventListener("change", () => {
+        const selected = el("threadSelect").value;
+        if (selected) {
+          el("threadId").value = selected;
+          setThreadLine(`threadId: ${selected}`);
+        }
+      });
+
+      el("connectBtn").addEventListener("click", async () => {
+        const wsUrl = el("wsUrl").value.trim();
+        if (!wsUrl) {
+          setInfoLine("Provide a WebSocket URL", "err");
+          return;
+        }
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          setInfoLine("Already connected");
+          return;
+        }
+
+        setStatus("Connecting...");
+        setSocketLine(`wsUrl: ${wsUrl}`);
+        setInfoLine("");
+
+        socket = new WebSocket(wsUrl);
+
+        socket.addEventListener("open", async () => {
+          setControlsConnected(true);
+          try {
+            await initializeServer();
+            await refreshThreads();
+          } catch (error) {
+            setInfoLine(`connect failed: ${error instanceof Error ? error.message : String(error)}`, "err");
+          }
+        });
+
+        socket.addEventListener("close", () => {
+          resetConnectionState();
+        });
+
+        socket.addEventListener("error", () => {
+          setInfoLine("WebSocket error", "err");
+        });
+
+        socket.addEventListener("message", (event) => {
+          const msg = JSON.parse(event.data.toString());
+          if (typeof msg.id !== "undefined") {
+            handleRpcResponse(msg);
+            return;
+          }
+          handleNotification(msg);
+        });
+      });
+
+      el("disconnectBtn").addEventListener("click", () => {
+        if (socket) {
+          socket.close();
+        }
+      });
+
+      el("refreshThreadsBtn").addEventListener("click", async () => {
+        try {
+          setInfoLine("Loading thread list...");
+          await refreshThreads();
+        } catch (error) {
+          setInfoLine(`thread/list failed: ${error instanceof Error ? error.message : String(error)}`, "err");
+        }
+      });
+
+      el("loadThreadBtn").addEventListener("click", async () => {
+        const threadId = el("threadId").value.trim();
+        try {
+          setInfoLine("Loading thread...");
+          await loadThread(threadId);
+          setInfoLine("Thread history loaded");
+        } catch (error) {
+          setInfoLine(`thread load failed: ${error instanceof Error ? error.message : String(error)}`, "err");
+        }
+      });
+
+      el("reloadThreadBtn").addEventListener("click", async () => {
+        if (!currentThreadId) {
+          setInfoLine("No current thread to reload", "err");
+          return;
+        }
+        try {
+          setInfoLine("Reloading current thread...");
+          await loadThread(currentThreadId);
+          setInfoLine("Current thread reloaded");
+        } catch (error) {
+          setInfoLine(`reload failed: ${error instanceof Error ? error.message : String(error)}`, "err");
+        }
+      });
+
+      el("newThreadBtn").addEventListener("click", async () => {
+        try {
+          const result = await callRpc("thread/start", {});
+          const threadId = result?.threadId || result?.thread?.id || result?.id || "";
+          if (!threadId) {
+            throw new Error("thread/start did not return a thread id");
+          }
+          currentThreadId = threadId;
+          currentThread = null;
+          el("threadId").value = threadId;
+          el("threadName").textContent = "New thread";
+          el("threadSummary").textContent = `threadId: ${threadId}`;
+          showEmpty("New thread started. Send the first message to begin the conversation.");
+          setThreadLine(`threadId: ${threadId}`);
+          setInfoLine("Started a new thread");
+          await refreshThreads();
+        } catch (error) {
+          setInfoLine(`thread/start failed: ${error instanceof Error ? error.message : String(error)}`, "err");
+        }
+      });
+
+      el("sendBtn").addEventListener("click", async () => {
+        const prompt = el("prompt").value.trim();
+        if (!prompt) {
+          return;
+        }
+
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          setInfoLine("Connect to app-server first", "err");
+          return;
+        }
+
+        appendMessage("user", prompt);
+        el("prompt").value = "";
+
+        try {
+          const threadId = await ensureThreadForSend();
+          setStatus("Sending turn...");
+          await callRpc("turn/start", {
+            threadId,
+            input: [{ type: "text", text: prompt }]
+          });
+          setStatus("Waiting for streamed reply...", "ok");
+          if (!currentThread || currentThread.id !== threadId) {
+            el("threadName").textContent = currentThread?.name || "Thread in progress";
+            el("threadSummary").textContent = `threadId: ${threadId}`;
+          }
+          await refreshThreads();
+        } catch (error) {
+          markStreamingIncomplete();
+          setStatus("Send failed", "err");
+          setInfoLine(`turn/start failed: ${error instanceof Error ? error.message : String(error)}`, "err");
+        }
+      });
+
+      el("prompt").addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          event.preventDefault();
+          el("sendBtn").click();
+        }
+      });
+
+      setControlsConnected(false);
+    </script>
+  </body>
+</html>

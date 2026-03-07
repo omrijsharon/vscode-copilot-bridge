@@ -1,0 +1,534 @@
+{
+  "savedAt": "2026-03-06T19:41:05.931Z",
+  "kind": "thread-list",
+  "threadId": "",
+  "payload": {
+    "data": [
+      {
+        "id": "019ca477-1523-7db0-8561-9c2cb764750e",
+        "preview": "i wish to add a side-project to this repo.\ni want to make a \"rocket FPV drone\" in the simulator that it's job is to hit a helium balloon that is floating up and sideways with the wind. a rocket-fpv-drone is a regular fpv drone that its fixed camera is pointing straight up (+z direction in the drone's/body reference frame).\nsince this repo already has the physics simulation of the fpv drone- i want to make a classic controller for hitting the balloon.\nthe inputs for the controller should be: \n1. position of the target/balloon in the frame - where the frame center is the origin and the edges are +-1. \n2. direction unit vector from the rocket drone to the target/balloon + convertion of this dir-vec to elevation and heading (spherical coordinates). this should be in world reference frame.\n\ni want to test my pid controller in the simulator and refine it.\n\nplease go over the repo, check what is already implemented, check if there is something missing for this project, understand what this repo is capable and write a plan file called \"rocket_drone_vs_hellium_balloon_plan.md\" under the root of this repo. this plan should say what is the goal of this project, how does it plan to achieve this goal, what can it use from this repo and what does in need to add.\n\nmy pid controller controls the sticks of the rocket drone as its actuators, so no need for you to implement anything. i will add it later.\n\nthe there should be several render modes:\n1. FPV mode - we \"see\" what the drone sees. a circle in the size of the balloon in the balloon position in the frame. and a text in the top left side of the frame with heading and elevation of the dir-vec.\n2. Side View / World view mode - we see the drone and the balloon in any angle we want which is between the x-z plane to the y-z plane. we can rotate arround the z axis. we see the drone as a point with a velocity vector and the balloon with a veclocity vector and their trail which is slowly disappearing (the older the trail segment, the more transparent it is).\n\nanything else is missing? do you have any information missing to write the plan?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1772285793,
+        "updatedAt": 1772460179,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\28\\rollout-2026-02-28T15-36-33-019ca477-1523-7db0-8561-9c2cb764750e.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\FPV_drone_racing_track",
+        "cliVersion": "0.107.0-alpha.5",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Add plan for rocket drone vs balloon",
+        "turns": []
+      },
+      {
+        "id": "019ca120-ec15-7510-adf5-b580858e1e2a",
+        "preview": "your goal is to build a vscode extension which bridges vscode copilot chat to an external program.\nplease read the guide in the file:\nC:\\Users\\tamipinhasi\\Documents\\repos\\vscode-copilot-bridge-comprehensive -guide.md\ndo you have any information missing about how to achieve this goal and everything that is mentioned in the guide?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1772229815,
+        "updatedAt": 1772825966,
+        "status": {
+          "type": "idle"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\28\\rollout-2026-02-28T00-03-35-019ca120-ec15-7510-adf5-b580858e1e2a.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\vscode-copilot-bridge",
+        "cliVersion": "0.105.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": {
+          "sha": null,
+          "branch": "main",
+          "originUrl": "https://github.com/omrijsharon/vscode-copilot-bridge.git"
+        },
+        "name": "Build VSCode Copilot bridge",
+        "turns": []
+      },
+      {
+        "id": "019ca0d4-7e81-7703-9c5d-b01dfd9e40fe",
+        "preview": "i want to be able to use the vscode-copilot-chat from an external extension/app/program/script.\nthe idea is that the chat itself (without the code changes will be accessible. meaning that an outer program can read the model's response and can send prompts to the model like the user is sending.\na kind of bridge between vscode-copilot-chat to the outside world.\nsome application for this kind of bridge: a script with telegram bot which lets the user write prompts from telegram and send them to the copilot chat and recieve what the chat writes back - in telegram. giving the user the ability to work with copilot chat from anywhere!\n\nmy questions:\n1. is this even possible? meaning, without changing the code of this repo, just installing a vscode-copilot-bridge extension that will do that. is this kind of bridge possible? can we program it given this repo?\n2. if it is possible, can you please go over this repo and write a comprehensive guide of how it should be done? with example, sources of code from this repo and a path to them so the agent that builds this extension will know where to look. \nthis guide will be in:\nC:\\Users\\tamipinhasi\\Documents\\repos\\vscode-copilot-bridge-comprehensive -guide.md\n3. after you finish the guide, go over it and in its end, add a plan. milestones and tasks with a checkbox next to each task and placeholder for time of finish.",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1772224806,
+        "updatedAt": 1772230193,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\27\\rollout-2026-02-27T22-40-06-019ca0d4-7e81-7703-9c5d-b01dfd9e40fe.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\vscode-copilot-chat",
+        "cliVersion": "0.105.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": {
+          "sha": "c34c3383427c12592d38d1fb632911d450abadd6",
+          "branch": "main",
+          "originUrl": "https://github.com/microsoft/vscode-copilot-chat.git"
+        },
+        "name": "Document Copilot bridge guide",
+        "turns": []
+      },
+      {
+        "id": "019c9a25-71aa-7c80-8ebc-ae21041d74ed",
+        "preview": "bird's eye view project.\nlets plan this project.\nthe end goals are:\n1. estimate translation of the drone (ego/self) with a camera pointing to the minus Z axis of the drone (body reference frame).\n2. align perfectly the frame, even though there is a movement (rotation and translation) between frames.\n3. detect motion using the aligned frames difference.\n4. make a mini-map by stitching all the bird's eye view frames.\n\nsetup:\nan FPV drone with betaflight flashed on the flight controller (FC).\na raspberry pi is the compute module. a camera sits on the bottom plate of the fpv drone, pointing down. the long horizontal FoV of the resolution of the camera is from back to front. the short vertical Fov of the resolution is from left to right.\nthe camera is always pointing in the minus Z axis of the drone (from up to down in the drone/body reference frame).\nwe are given the camera calibration (intrinsic matrix and distortion coefficients of the camera).\n\nutilities:\nthe pi is connected via UART to the FC. \ncan read the attitude (euler angles) from the betaflightMSP library that already exists (betaflightMSP.h betaflightMSP.cpp).\n\nassumptions:\nthe ground is far away. meaning, the translation is tiny between frames.\nthe pi is not that computationally capable so we should be as efficient as possible with the way we run the algorithms. for instance: to align 2 consecutive frames, we will first use opencv's warpPerspective. we will convert the attitude to a rotation matrix. then, we will use the rotation matrix to make both frames to be shown like they were taken with the camera pointing to the minus Z axis in the world reference frame (bird's eye view- BEV).\nin the first step, we will want to make a webapp which shows this warped frame.\nin the second step, we will want to find keypoints in one frame and find them in the other frame so we can align the image perfectly on top of each other (how do you call this alignment in computer vision?). to match the keypoint from one frame to the other, we will have to be efficient.\nwe will assume the translation is small: we will do template matching (the size of the template will be in the config file) and look for the template not in the entire other frame, but only in a crop of the other frame. we will assume that the template did not move too much so the template should be around where it was in the previous frame (where it was taken from). this way, the template matching will be much faster because we look for the template in a crop. the crop size should also be a parameter in the config file.\nafter finding the template, we should take into account that the position of the template we found was in a crop. so we need to give the template matching its real global pixel coordinate in the BEV warpped frame. this is a way to make this more efficient.\nwe can make it even more efficient- we can take a stride of 2 of the template and of the frame we are looking the template in, and get a course template matching. after getting the course template matching, we can get a fine match with no stride to a tighter crop.\nwe can have the parameters in the config:\nnumber of keypoints, course crop size, fine crop size, template size.\ncourse crop size will be the effective size. its real size will be 2 times smaller because of the stride.\nthis is very effective!\nnow that we have been tracking several keypoints, we can estimate the movement/velocity of the drone in pixels (pixel offset and direction and yaw/heading rotation). we can get a better estimation of where the crop should be in the next frame. so we can center the crop around the position + delta_time* estimated pixel_velocity. we should have a cap to the value of delta_time* estimated pixel_velocity in the config file: max_distance_from_keypoint_center. if delta_time* estimated pixel_velocity is larger than max_distance_from_keypoint_center, then its value will be max_distance_from_keypoint_center.\n\nnow we have translation estimation.\nbut we also have several keypoints, and the camera calibration. now we will try to align the images and stich them in a way that they will sit right on top of each other perfectly. all the keypoints will align. how do we do that? given that we have tracked the keypoints from before, what opencv function should we use?\n\nnow that we have the aligned frames, we want to take the difference between the frames and mark the changes. the frames difference. once we have it, we will make it look like an event camera: all the -255 to 0 will be shown in blue as a half transparent mask on the frame in the webapp. and from 0 to 255 will be shown in red (like the blue, only in red).\nthe config file will have parameters of: determining alpha - the transparency factor, determining a threshold. a value that any movement under this value, will not be shown. if the threshold of movement is 30. and the movement is -29 or 29, it will be zeroed. anything between -30 to 30 will be zeroed in the movement mask. the rest will keep being continious between -255 to -31 and between 30 to 255.\nnow we have the movement mask on top of the real time frame.\n\nfinally, we need to use the frames and the keypoints tracking to stich the frames together to a mini-map.\nwe want to have a map that as we keep on flying, more data is added up to it and we can have a kind of map like in strategy games. do you understand what i mean? so we stitch the BEV frames in a way that they will create the BEV map.\nthis map will keep on updating.\n\nlets write a plan for this project.\nanswer the questions i had with a Q&A in the document of the plan.md file and also write your own questions of things that needs clarification.\nif you have any suggestions, add them as suggestions, so it will be clear that this is what you are suggesting.\nlets plan!",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1772112671,
+        "updatedAt": 1772224799,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\26\\rollout-2026-02-26T15-31-11-019c9a25-71aa-7c80-8ebc-ae21041d74ed.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\BEV",
+        "cliVersion": "0.104.0-alpha.1",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Plan bird's-eye view pipeline",
+        "turns": []
+      },
+      {
+        "id": "019c904f-8208-7b81-8fdd-c11c8ff900fb",
+        "preview": "if we want to change the i2c address of the magnetometer (mag), how can we do that using the cli commands?\n(don't change the code, just answer the question)",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771947655,
+        "updatedAt": 1772825551,
+        "status": {
+          "type": "idle"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\24\\rollout-2026-02-24T17-40-55-019c904f-8208-7b81-8fdd-c11c8ff900fb.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\betaflight",
+        "cliVersion": "0.104.0-alpha.1",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Explain changing magnetometer i2c",
+        "turns": []
+      },
+      {
+        "id": "019c8a7b-3bb3-7d21-9d79-730388dd5e2c",
+        "preview": "i want to make my pi zero aUVC gadget so it will act as a webcam.\nthis repo does exacly that.\ncan you explain to me what it does?\ncan i do what it does by hand just by changing the config.txt file?\ndo i need to do more than that?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771849857,
+        "updatedAt": 1771974101,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\23\\rollout-2026-02-23T14-30-57-019c8a7b-3bb3-7d21-9d79-730388dd5e2c.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\pi-webcam",
+        "cliVersion": "0.104.0-alpha.1",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": {
+          "sha": "4f90fec93daaffaabfbffcad6009d444af59252d",
+          "branch": "master",
+          "originUrl": "https://github.com/geerlingguy/pi-webcam.git"
+        },
+        "name": "Explain pi zero uvc gadget setup",
+        "turns": []
+      },
+      {
+        "id": "019c8a73-a6e2-7181-abe2-4bbaec9de40d",
+        "preview": "i am using openAI codex as an agent. Codex uses github copilot vscode extension. this repo is its code.\nI want to be able to get what is happening in the chat using an outside script/program/extension.\ni want to be able to inject to the chat prompts, like i am actually writing in the chat and also get the model's respose and what the model is writing, all with an outer script/program.\ncan you go over this repo and tell me if it is possible, and if so, how? what should i do?\ndon't change the code. just tell me here in the chat.",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771849361,
+        "updatedAt": 1771850287,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\23\\rollout-2026-02-23T14-22-41-019c8a73-a6e2-7181-abe2-4bbaec9de40d.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\vscode-copilot-chat",
+        "cliVersion": "0.104.0-alpha.1",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Explain integrating external chat",
+        "turns": []
+      },
+      {
+        "id": "019c8715-5f51-7f53-be2a-79a17f8604ec",
+        "preview": "this repo hosts 2 hardwares. can you spot what are they?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771792850,
+        "updatedAt": 1772112008,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\22\\rollout-2026-02-22T22-40-50-019c8715-5f51-7f53-be2a-79a17f8604ec.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\PlatformIO\\Projects\\simple-mesh",
+        "cliVersion": "0.104.0-alpha.1",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": {
+          "sha": "ac6ed6103280aafa9978339a087ca401a23aea85",
+          "branch": "main",
+          "originUrl": "https://github.com/omrijsharon/swarm_mesh_firware.git"
+        },
+        "name": "Identify two hardware targets",
+        "turns": []
+      },
+      {
+        "id": "019c86fd-02c5-7d21-97d0-46966afd414c",
+        "preview": "this repo does not use radiolib to control and communicate between the esp32 and the LoRa chipset.\nwhat does it use instead?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771791254,
+        "updatedAt": 1771792688,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\22\\rollout-2026-02-22T22-14-14-019c86fd-02c5-7d21-97d0-46966afd414c.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\ExpressLRS",
+        "cliVersion": "0.104.0-alpha.1",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Find LoRa communication library",
+        "turns": []
+      },
+      {
+        "id": "019c86f6-e098-7ef1-b924-158241d977ca",
+        "preview": "this repo doesn't use radiolib to control and communicate between the esp32 and the LoRa chips.\nwhat does it use? does it use its own implementation of radiolib for this?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771790852,
+        "updatedAt": 1771790963,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\22\\rollout-2026-02-22T22-07-32-019c86f6-e098-7ef1-b924-158241d977ca.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\ExpressLRS",
+        "cliVersion": "0.104.0-alpha.1",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": {
+          "sha": "ff41f67aec3cb8c0be531ff66a9abba3f215285a",
+          "branch": null,
+          "originUrl": "https://github.com/ExpressLRS/ExpressLRS.git"
+        },
+        "name": null,
+        "turns": []
+      },
+      {
+        "id": "019c617f-712f-71f1-b798-8f3330fe867f",
+        "preview": "please help me convert app\\fonts\\shaldag_crosshairs.mcm into a png file. use this repo, read the readme.md file first.",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771162267,
+        "updatedAt": 1771162332,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\15\\rollout-2026-02-15T15-31-07-019c617f-712f-71f1-b798-8f3330fe867f.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\mcm2img",
+        "cliVersion": "0.100.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": {
+          "sha": "a7130f904bf2557c6800091a370e4046d15d35a4",
+          "branch": "main",
+          "originUrl": "https://github.com/bri3d/mcm2img.git"
+        },
+        "name": "Convert shaldag_crosshairs mcm to px",
+        "turns": []
+      },
+      {
+        "id": "019c60c3-b19d-7ba3-9dab-85c13df69474",
+        "preview": "in the scripts/automated_calibration_ui.py, i need to manualy paste the current values of the z_ekf parameters in one of the context fields that go into the system system prompt.\nit will be better of when we are copying the log files, we will also pull the parameters using: \nGET /api/z_ekf/config → returns the Z_EKF config dict the app reads from the flight controller\ni.e.: curl http://<webapp-host>:5000/api/z_ekf/config\r\nwe are using python, we don't need to use curl, this is an example of usage.\nbut the idea is clear. pull the data yourself when copying the logs from the drone's computer to this computer and then also get the current value of the calibration parameters and put them in the correct place in the system prompt json.",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771149963,
+        "updatedAt": 1771151632,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\15\\rollout-2026-02-15T12-06-03-019c60c3-b19d-7ba3-9dab-85c13df69474.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\desktop-agent",
+        "cliVersion": "0.98.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Pull z_ekf config when copying logs",
+        "turns": []
+      },
+      {
+        "id": "019c60ba-2ebd-73f0-b0a5-88e356dc58cc",
+        "preview": "in this repo, there is an app in:\ntests/z_ekf_calibration_webapp\ncan you tell me if there is a way to extract using an HTTP call the values of the parameters?\nmeaning that if i have an external app and it wants to get these parameters while the webapp is running, is there a way to do that at the moment?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771149340,
+        "updatedAt": 1771159288,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\15\\rollout-2026-02-15T11-55-40-019c60ba-2ebd-73f0-b0a5-88e356dc58cc.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\ArUco_Chaser",
+        "cliVersion": "0.98.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": null,
+        "turns": []
+      },
+      {
+        "id": "019c6073-eb9b-7560-8bbd-f731008bb924",
+        "preview": "lets make a plan for this project. i added relevant files in the folder \"additional files\". one is a manual and the others are relevant files from betaflight's  firmware.\nthis project's goal is to stream the video from a camera connected to a CM4 with the lowest latency possible and lay on top of it a canvas with the OSD of betaflight. the cm4 is connected via UART to the flight controller which is flashed with betaflight.\nthe BetaflightMSP files are files that i had from a different project - they are meant to communicate with the flight controller. i guess there are several commands missing there. we will need to add them. but first we will need to understand what is missing.\n\nso now that you know the end goal, read:\nadditional_files\\betaflight_OSD_display_port_detailed_guide.md\nand write a plan for this project. with tasks and sub-tasks with checkboxes so we can track our progress.\nwe can use python and picamera2 to get the least latency preview of the camera feed.\n\nif you need to look anything online, please do. \nlets start planning.",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771144735,
+        "updatedAt": 1771363681,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\15\\rollout-2026-02-15T10-38-55-019c6073-eb9b-7560-8bbd-f731008bb924.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\MSP_display_port",
+        "cliVersion": "0.100.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": null,
+        "turns": []
+      },
+      {
+        "id": "019c5e52-ee98-7bb0-94e1-0651d7dc9544",
+        "preview": "if i want to get an msp packet with all the osd values and configuration so i can put an hd osd canvas on my video feed - where does it happen in befaflight's code? what file takes care of it? how does the packet frame looks like?\ncan you write me here in the chat everything without changing the code?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1771109019,
+        "updatedAt": 1771138909,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\15\\rollout-2026-02-15T00-43-39-019c5e52-ee98-7bb0-94e1-0651d7dc9544.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\betaflight",
+        "cliVersion": "0.98.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": null,
+        "turns": []
+      },
+      {
+        "id": "019c491f-b619-7451-ba33-4ea6ed850a31",
+        "preview": "i want to make a plan with you that characterize this repo, especially:\nsrc\\core\\processes_coordinator.py\nand the optimization tricks done in:\nsrc\\utils\\imu_tracker.py\n\nthe idea is that if we had to redo this project from scratch, what would we take out of it? how would we structure it? what will be a good document that will serve us to rewrite this repo better with new features?\n\nlets try to make such an md file under the root folder.\nlets discuss it in high level first and optimize this document together.\npriority is low latency. trade-off is accuracy.\nwe want fast response to the frames and to the tracking but if the tracking is too slow, the response will be slow, even though the tracking will be more accurate.\nalso, we use shared memory (shm) to reduce the overhead of serializing and de-serializing messages and frames.\nwe have several processes so we can run everything needed in parallel.\ndo you have more to add?\ncan you figure out the optimization trick in the imu tracker?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770753340,
+        "updatedAt": 1771106558,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\10\\rollout-2026-02-10T21-55-40-019c491f-b619-7451-ba33-4ea6ed850a31.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\ArUco_Chaser",
+        "cliVersion": "0.98.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": null,
+        "turns": []
+      },
+      {
+        "id": "019c3987-f46a-7c11-8ef0-471f3031cccd",
+        "preview": "apparently there is a problem with the Z_EKF implementation in the src\\main\\flight\\position.c file.\nhere are the instructions to fix it:\nWould I change the Z_EKF implementation? Yes — a few specific things\nA) Add “recovery” behavior when gating is stuck\n\nRight now, if you start rejecting baro continuously, the EKF can run open-loop and drift → divergence.\n\nFix: detect a reject streak and temporarily relax.\nExample strategy (simple + effective):\n\nKeep a counter rejCount\n\nIf gateRejected for > N frames (e.g. 20–50 frames):\n\ntemporarily inflate R (e.g. R *= 50), and allow update\n\nor temporarily increase gateSigma for a short window\n\nor do a “soft reset”: set z = zMeas, v unchanged, keep biases\n\nThis is the single biggest robustness improvement for “windows / pressure steps”.\n\nB) Make S robust: covariance floor / avoid overconfidence collapse\n\nYour failure mode screams: S becomes too small, so the gate becomes tiny, so you reject forever.\n\nAdd a floor like:\n\nS = max(S, S_min) where S_min maybe corresponds to (0.3m)^2 etc.\nor\n\nenforce minimum Pzz / Pvv floors\n\nAlso ensure you maintain P symmetry after updates:\n\nP = 0.5*(P + P^T) occasionally\nand ideally use Joseph-form covariance update in ekfUpdateZ() / ekfUpdateV() to keep P PSD under numerical error.\n\nC) Handle “baro step” explicitly via the baro-bias state bb\n\nYou already have innov = zMeas - (z + bb) which is great.\nBut if bb can’t move fast enough, gating turns it off.\n\nTwo options:\n\nIncrease Qbb (parameter) — you’re doing that.\n\nAdd logic: if innovation looks like a step (large, persistent, same sign) → treat it as bb event.\n\nImplementation sketch:\n\nif |innov| > stepThresh AND |d/dt zMeas| large, then:\n\nupdate bb more aggressively (temporary higher Qbb or direct bb += alpha*innov)\n\nD) Don’t do velocity update when Z was rejected for a while\n\nYou currently do ekfUpdateV() only when Z accepted (good).\nBut you also gate vario update on r33>0.8 (good).\nOne improvement:\n\nIf Z has been rejected for K frames, skip V update even if r33 good, because vBaro is derived from the same disturbed baro.\n\nE) dt correctness and scheduling\n\nYou assume fixed:\n\nconst float dt = HZ_TO_INTERVAL(TASK_ALTITUDE_RATE_HZ);\n\n\nIf actual task jitter exists, Q scaling is wrong and can destabilize confidence.\nIf Betaflight gives you actual delta time for the task, use it. If not, at least sanity clamp:\n\ndt = constrain(dt, 0.5*nominal, 2.0*nominal)\n\nF) Debug values: log the thing that matters\n\nRight now you log innovZ, gateRejected, etc.\nAdd one more that will immediately tell you why gating happens:\n\nlog sqrt(S) (or limit) and/or S scaled\n\nlog R_eff\nWithout that, you’re partially blind.\n\n3) Devil’s advocate: your gating logic can create a “deadlock”\n\nYour gate uses:\n\nlimit = gateSigma * sqrt(S)\nreject if |innov| > limit\n\n\nBut S depends on P and R.\nIf your filter ever becomes too confident (P small, R small), the gate gets tighter → more rejects → fewer updates → P can stay “wrong” → deadlock.\n\nThat’s why recovery logic (A) and P floors (B) are not optional in real flight.\n\nIf you want the highest ROI single code change\n\nAdd reject-streak recovery + log limit and R_eff.\n\nThat alone will prevent “stuck reject → divergence” and will make tuning dramatically easier.\n\nIf you paste your ekfPredict / ekfUpdateZ / ekfUpdateV / state definition (the P matrix layout), I can be concrete about:\n\nwhich P elements to floor\n\nrecommended Joseph update\n\nbest place to inject bb-step handling\n\nnotice that there are only 8 debug elements in the debug array. if we need more that what we have, we can skip the R[3,3] and the accel_z. they are not really needed for the debug.\n\nplease follow the instructions and fix the Z_EKF. are the instructions clear? do you have any questions before you start?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770491737,
+        "updatedAt": 1770494413,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\07\\rollout-2026-02-07T21-15-37-019c3987-f46a-7c11-8ef0-471f3031cccd.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\betaflight",
+        "cliVersion": "0.98.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Improve Z_EKF recovery and gating",
+        "turns": []
+      },
+      {
+        "id": "019c348f-88dc-7213-9a37-2eb7a2f7fa05",
+        "preview": "if i call the msp command MSP_BOXNAMES:\n    case MSP_BOXNAMES:\r\n        {\r\n            const int page = sbufBytesRemaining(src) ? sbufReadU8(src) : 0;\r\n            serializeBoxReply(dst, page, &serializeBoxNameFn);\r\n        }\r\n        break;\n\nwhat do i expect to get? a list of AUX config?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770408347,
+        "updatedAt": 1770409970,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\06\\rollout-2026-02-06T22-05-47-019c348f-88dc-7213-9a37-2eb7a2f7fa05.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\betaflight",
+        "cliVersion": "0.98.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Explain MSP_BOXNAMES output",
+        "turns": []
+      },
+      {
+        "id": "019c3482-4631-7bf3-a665-5ba0c2cca2f9",
+        "preview": "in the z_ekf_calibration_webapp, are the logs and the recording starting only when armed?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770407478,
+        "updatedAt": 1770722411,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\06\\rollout-2026-02-06T21-51-18-019c3482-4631-7bf3-a665-5ba0c2cca2f9.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\ArUco_Chaser",
+        "cliVersion": "0.98.0",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Verify logs and recording start when",
+        "turns": []
+      },
+      {
+        "id": "019c2f4b-3fa6-7741-97cf-cb8b70a0260e",
+        "preview": "lets add to scripts another script, which is a bit un-related to the rest of this repo.\nI want to see the distribution of weights in the file:\nC:\\Users\\tamipinhasi\\Documents\\models\\Qwen3-8B-GGUF\\Qwen3-8B-Q5_K_M.gguf\ndo you know how to extract them?\nif so, can you give me a comprehensive architecture of this model in terms of layers and shapes?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770319986,
+        "updatedAt": 1771362606,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\05\\rollout-2026-02-05T21-33-06-019c2f4b-3fa6-7741-97cf-cb8b70a0260e.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\desktop-agent",
+        "cliVersion": "0.94.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Describe Qwen3-8B-GGUF model",
+        "turns": []
+      },
+      {
+        "id": "019c2e55-fb18-7313-9ef6-2454d168cf3d",
+        "preview": "can we add a tool to the model that will allow the model to change the system prompt by itself, if it desires to?\nin C:\\Users\\tamipinhasi\\Documents\\llama_helpers\\chat_qwen3.py",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770303912,
+        "updatedAt": 1770319326,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\05\\rollout-2026-02-05T17-05-12-019c2e55-fb18-7313-9ef6-2454d168cf3d.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\llama.cpp",
+        "cliVersion": "0.94.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Add tool for model to update prompt",
+        "turns": []
+      },
+      {
+        "id": "019c2a37-6ddc-72d3-a0d5-1d26ecd854ea",
+        "preview": "what is the current model that is in use?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770234801,
+        "updatedAt": 1770280732,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\04\\rollout-2026-02-04T21-53-21-019c2a37-6ddc-72d3-a0d5-1d26ecd854ea.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\llama.cpp",
+        "cliVersion": "0.94.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Find current model in use",
+        "turns": []
+      },
+      {
+        "id": "019c2542-b9a1-7800-b47f-aabbeb064b8f",
+        "preview": "this repo is a fork of picamera2.\nsince it has the same name as the original and i want to be able to use both the original and the forked repos, i tried to change its name so i can install it under the name picamera_contrib.\nsomething doesn't work.\nto check if it works, one needs to enter the pi zero 2 w using ssh:\nssh omrijsharon@omrijsharon.local\ngo to cd /home/omrijsharon/Documents/repos/picamera2\nwhich is where i cloned this repo and try to make it work. the basic is try to run python and import it.\n\ncan you please:\n1. check that the git in this computer is up to date\n2. pull the repo on the pi.\n3. check if the repo works by importing the picam2 from picamera2_contrib. (if this is the correct way).\n\ntell me what you got.",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770151655,
+        "updatedAt": 1770151655,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\03\\rollout-2026-02-03T22-47-35-019c2542-b9a1-7800-b47f-aabbeb064b8f.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\picamera2",
+        "cliVersion": "0.94.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": null,
+        "turns": []
+      },
+      {
+        "id": "019c22d9-5467-7c72-86c6-dc39a853d0cc",
+        "preview": "now that we have a track generator and a physics engine for the drone simulation, and we also made a compiled version that runs really fast and also a gym env. is that correct?",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770111194,
+        "updatedAt": 1770125989,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\03\\rollout-2026-02-03T11-33-14-019c22d9-5467-7c72-86c6-dc39a853d0cc.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\FPV_drone_racing_track",
+        "cliVersion": "0.94.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": "Confirm track generator and physics",
+        "turns": []
+      },
+      {
+        "id": "019c228f-6096-7e92-a610-57b390e941e6",
+        "preview": "this repo is meant to create a new type of transformers architecture to small language models.\nwe need to make outselves an environment that will be able to run pytorch and huggingface's transformers as easily as possible. if a docker will work best, lets do it with a docker. i am not sure cudnn is installed on this computer. so it will be best to find a way to start an environment for this project with minimal installations but pytorch and transformers.\nplease start creating the environment and make tests that check if you succeeded.",
+        "ephemeral": false,
+        "modelProvider": "openai",
+        "createdAt": 1770106347,
+        "updatedAt": 1770117563,
+        "status": {
+          "type": "notLoaded"
+        },
+        "path": "C:\\Users\\tamipinhasi\\.codex\\sessions\\2026\\02\\03\\rollout-2026-02-03T10-12-27-019c228f-6096-7e92-a610-57b390e941e6.jsonl",
+        "cwd": "\\\\?\\C:\\Users\\tamipinhasi\\Documents\\repos\\recursive_transfrmers",
+        "cliVersion": "0.94.0-alpha.10",
+        "source": "vscode",
+        "agentNickname": null,
+        "agentRole": null,
+        "gitInfo": null,
+        "name": null,
+        "turns": []
+      }
+    ],
+    "nextCursor": "2026-02-03T08:12:27Z|019c228f-6096-7e92-a610-57b390e941e6"
+  }
+}

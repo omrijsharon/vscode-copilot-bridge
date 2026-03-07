@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex Relay Operator</title>
+    <style>
+      :root {
+        --bg: #efe7da;
+        --panel: #fffaf3;
+        --ink: #201813;
+        --muted: #77685d;
+        --line: #d7c8b9;
+        --accent: #225d4a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        background: linear-gradient(180deg, #f6ede2, var(--bg));
+        color: var(--ink);
+      }
+      .shell {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        margin-bottom: 16px;
+      }
+      button {
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #fffaf3;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font: inherit;
+        cursor: pointer;
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+      pre {
+        white-space: pre-wrap;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fffdf9;
+        padding: 12px;
+        font-family: Consolas, "Courier New", monospace;
+      }
+      .muted { color: var(--muted); }
+      .pairing-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      .qrbox {
+        min-height: 320px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 12px;
+      }
+      .qrbox svg {
+        width: 100%;
+        height: auto;
+        max-width: 280px;
+      }
+      .placeholder {
+        width: 280px;
+        height: 280px;
+        background: #ffffff;
+        border: 1px solid #f1ece4;
+        border-radius: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .hint {
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+      .session-list {
+        display: grid;
+        gap: 10px;
+      }
+      .session-item {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fffdf9;
+      }
+      .session-meta {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      @media (max-width: 860px) {
+        .pairing-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <h1>Codex Relay Operator</h1>
+        <p class="muted">
+          Local operator surface for pairing and session inspection. This is the desktop control page for the relay.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Pairing</h2>
+        <div class="row">
+          <button id="createPairingBtn">Create Pairing</button>
+          <button id="copyPairUrlBtn">Copy Pair URL</button>
+          <button id="openPairUrlBtn">Open Pair URL</button>
+        </div>
+        <div class="pairing-grid">
+          <div class="qrbox">
+            <div id="qrPlaceholder" class="placeholder" aria-hidden="true"></div>
+            <div id="qrMount" hidden></div>
+          </div>
+          <div>
+            <pre id="pairingBox">Preparing first pairing...</pre>
+            <div class="hint">
+              Scan the QR code from the phone or open the pair URL directly on the phone. The QR is generated locally
+              by the relay and a fresh pairing is created automatically when this page loads.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Sessions</h2>
+        <div class="row">
+          <button id="refreshSessionsBtn">Refresh Sessions</button>
+          <button id="revokeAllSessionsBtn">Invalidate All Sessions</button>
+        </div>
+        <div id="sessionsList" class="session-list">
+          <div class="hint">No sessions loaded yet.</div>
+        </div>
+        <div class="hint">
+          `Invalidate All Sessions` logs out every currently paired/authenticated device. Each device will need to pair
+          again.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>State</h2>
+        <button id="refreshStateBtn">Refresh State</button>
+        <pre id="stateBox">No state loaded yet.</pre>
+      </div>
+
+      <div class="card">
+        <h2>Health</h2>
+        <button id="refreshHealthBtn">Refresh Health</button>
+        <pre id="healthBox">No health loaded yet.</pre>
+      </div>
+
+      <div class="card">
+        <h2>Restart Guidance</h2>
+        <pre>1. Start Codex app-server:
+& "C:\Users\tamipinhasi\.vscode\extensions\openai.chatgpt-26.304.20706-win32-x64\bin\windows-x86_64\codex.exe" app-server --listen ws://127.0.0.1:4500
+
+2. Start relay:
+.\scripts\start-codex-relay.ps1
+
+3. Operator page:
+http://127.0.0.1:8787/operator
+
+4. Remote client:
+http://127.0.0.1:8787/</pre>
+      </div>
+
+      <div class="card">
+        <h2>One-Click Start</h2>
+        <pre>powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
+  -PublicBaseUrl "https://codex.flying-agents.com" `
+  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE"</pre>
+      </div>
+
+      <div class="card">
+        <h2>Different-Network Setup</h2>
+        <pre>For phone access from another network:
+
+1. Keep app-server local:
+ws://127.0.0.1:4500
+
+2. Expose only the relay.
+
+3. Set relay env vars before start:
+CODEX_RELAY_HOST=0.0.0.0
+CODEX_RELAY_BASE_URL=https://YOUR_PUBLIC_HOST
+CODEX_RELAY_SESSION_SECRET=your-random-secret
+
+4. Use HTTPS/WSS for the phone path.
+
+5. Do not expose raw app-server directly.</pre>
+      </div>
+    </div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      let latestPairUrl = "";
+      let latestState = null;
+
+      async function getJson(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          ...options
+        });
+        const text = await response.text();
+        const payload = text ? JSON.parse(text) : {};
+        if (!response.ok) {
+          throw new Error(JSON.stringify(payload, null, 2));
+        }
+        return payload;
+      }
+
+      function renderQrSvg(svg) {
+        const mount = el("qrMount");
+        const placeholder = el("qrPlaceholder");
+        if (!svg) {
+          mount.hidden = true;
+          mount.innerHTML = "";
+          placeholder.hidden = false;
+          return;
+        }
+        mount.hidden = false;
+        mount.innerHTML = svg;
+        placeholder.hidden = true;
+      }
+
+      async function createPairing() {
+        const result = await getJson("/api/pairing/start", { method: "POST" });
+        latestPairUrl = result.pairUrl || "";
+        el("pairingBox").textContent = JSON.stringify(result, null, 2);
+        renderQrSvg(result.qrSvg || "");
+      }
+
+      async function copyPairUrl() {
+        if (!latestPairUrl) {
+          throw new Error("Create a pairing first.");
+        }
+        await navigator.clipboard.writeText(latestPairUrl);
+      }
+
+      function openPairUrl() {
+        if (!latestPairUrl) {
+          throw new Error("Create a pairing first.");
+        }
+        window.open(latestPairUrl, "_blank", "noopener,noreferrer");
+      }
+
+      async function refreshState() {
+        const result = await getJson("/api/operator/state");
+        latestState = result;
+        el("stateBox").textContent = JSON.stringify(result, null, 2);
+        renderSessions(result.sessions || []);
+      }
+
+      function renderSessions(sessions) {
+        const list = el("sessionsList");
+        list.innerHTML = "";
+        if (!Array.isArray(sessions) || sessions.length === 0) {
+          list.innerHTML = '<div class="hint">No active sessions.</div>';
+          return;
+        }
+        for (const session of sessions) {
+          const item = document.createElement("div");
+          item.className = "session-item";
+          const meta = document.createElement("div");
+          meta.className = "session-meta";
+          meta.textContent =
+            `sessionId: ${session.sessionId}\n` +
+            `pairingId: ${session.pairingId}\n` +
+            `createdAt: ${new Date(session.createdAt).toLocaleString()}\n` +
+            `expiresAt: ${new Date(session.expiresAt).toLocaleString()}`;
+          const row = document.createElement("div");
+          row.className = "row";
+          const revokeBtn = document.createElement("button");
+          revokeBtn.textContent = "Revoke This Session";
+          revokeBtn.onclick = () => void revokeSession(session.sessionId);
+          row.appendChild(revokeBtn);
+          item.appendChild(meta);
+          item.appendChild(row);
+          list.appendChild(item);
+        }
+      }
+
+      async function revokeSession(sessionId) {
+        const confirmed = window.confirm(
+          "Revoke this session?\n\nThis logs out only the selected device/browser session. That device will need to pair again."
+        );
+        if (!confirmed) {
+          return;
+        }
+        await getJson("/api/operator/session/revoke", {
+          method: "POST",
+          body: JSON.stringify({ sessionId })
+        });
+        await refreshState();
+      }
+
+      async function revokeAllSessions() {
+        const confirmed = window.confirm(
+          "Invalidate all sessions?\n\nThis logs out every currently paired/authenticated device. All devices will need to pair again."
+        );
+        if (!confirmed) {
+          return;
+        }
+        await getJson("/api/operator/session/revoke-all", {
+          method: "POST",
+          body: "{}"
+        });
+        await refreshState();
+      }
+
+      async function refreshHealth() {
+        const result = await getJson("/health");
+        el("healthBox").textContent = JSON.stringify(result, null, 2);
+      }
+
+      el("createPairingBtn").onclick = () => void createPairing();
+      el("copyPairUrlBtn").onclick = () => void copyPairUrl();
+      el("openPairUrlBtn").onclick = () => void openPairUrl();
+      el("refreshStateBtn").onclick = () => void refreshState();
+      el("refreshSessionsBtn").onclick = () => void refreshState();
+      el("revokeAllSessionsBtn").onclick = () => void revokeAllSessions();
+      el("refreshHealthBtn").onclick = () => void refreshHealth();
+      renderQrSvg("");
+      void createPairing();
+      void refreshState();
+      void refreshHealth();
+    </script>
+  </body>
+</html>
