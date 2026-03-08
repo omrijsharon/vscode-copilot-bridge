@@ -108,6 +108,49 @@
         font-size: 13px;
         line-height: 1.5;
       }
+      .event-list {
+        display: grid;
+        gap: 10px;
+      }
+      .event-item {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fffdf9;
+      }
+      .alert-item {
+        border: 1px solid #d9b778;
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff7e8;
+      }
+      .event-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .event-meta {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 12px;
+        background: #fffaf3;
+      }
+      .badge.error {
+        border-color: #d98f86;
+        color: #8b2e2a;
+        background: #fff1ef;
+      }
       @media (max-width: 860px) {
         .pairing-grid {
           grid-template-columns: 1fr;
@@ -158,6 +201,26 @@
         <div class="hint">
           `Invalidate All Sessions` logs out every currently paired/authenticated device. Each device will need to pair
           again.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Security Alerts</h2>
+        <div class="row">
+          <button id="refreshAlertsBtn">Refresh Alerts</button>
+        </div>
+        <div id="alertsList" class="event-list">
+          <div class="hint">No alerts loaded yet.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recent Events</h2>
+        <div class="row">
+          <button id="refreshEventsBtn">Refresh Events</button>
+        </div>
+        <div id="eventsList" class="event-list">
+          <div class="hint">No events loaded yet.</div>
         </div>
       </div>
 
@@ -274,6 +337,8 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
         latestState = result;
         el("stateBox").textContent = JSON.stringify(result, null, 2);
         renderSessions(result.sessions || []);
+        renderAlerts(result.alerts || []);
+        renderEvents(result.logs || []);
       }
 
       function renderSessions(sessions) {
@@ -292,7 +357,14 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
             `sessionId: ${session.sessionId}\n` +
             `pairingId: ${session.pairingId}\n` +
             `createdAt: ${new Date(session.createdAt).toLocaleString()}\n` +
-            `expiresAt: ${new Date(session.expiresAt).toLocaleString()}`;
+            `expiresAt: ${new Date(session.expiresAt).toLocaleString()}\n` +
+            `ipAddress: ${session.ipAddress || "unknown"}\n` +
+            `country: ${session.country || "unknown"}\n` +
+            `city: ${session.city || "unknown"}\n` +
+            `asn: ${session.asn || "unknown"}\n` +
+            `isp: ${session.isp || "unknown"}\n` +
+            `os: ${session.os || "Unknown"}\n` +
+            `userAgent: ${session.userAgent || "unknown"}`;
           const row = document.createElement("div");
           row.className = "row";
           const revokeBtn = document.createElement("button");
@@ -319,6 +391,24 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
         await refreshState();
       }
 
+      function renderAlerts(alerts) {
+        const list = el("alertsList");
+        list.innerHTML = "";
+        if (!Array.isArray(alerts) || alerts.length === 0) {
+          list.innerHTML = '<div class="hint">No alerts.</div>';
+          return;
+        }
+        for (const alert of alerts) {
+          const item = document.createElement("div");
+          item.className = "alert-item";
+          item.innerHTML =
+            `<strong>${alert.type || "alert"}</strong>` +
+            `<div class="event-meta">time: ${alert.ts || "unknown"}\nsessionId: ${alert.sessionId || "-"}</div>` +
+            `<div>${alert.message || ""}</div>`;
+          list.appendChild(item);
+        }
+      }
+
       async function revokeAllSessions() {
         const confirmed = window.confirm(
           "Invalidate all sessions?\n\nThis logs out every currently paired/authenticated device. All devices will need to pair again."
@@ -333,6 +423,52 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
         await refreshState();
       }
 
+      function renderEvents(logs) {
+        const list = el("eventsList");
+        list.innerHTML = "";
+        if (!Array.isArray(logs) || logs.length === 0) {
+          list.innerHTML = '<div class="hint">No events recorded yet.</div>';
+          return;
+        }
+        for (const entry of [...logs].reverse().slice(0, 20)) {
+          const item = document.createElement("div");
+          item.className = "event-item";
+
+          const head = document.createElement("div");
+          head.className = "event-head";
+          const title = document.createElement("div");
+          title.innerHTML = `<strong>${entry.kind || "event"} / ${entry.action || "unknown"}</strong>`;
+
+          const badge = document.createElement("span");
+          badge.className = `badge${entry.status === "error" ? " error" : ""}`;
+          badge.textContent = entry.status || "unknown";
+
+          head.appendChild(title);
+          head.appendChild(badge);
+
+          const meta = document.createElement("div");
+          meta.className = "event-meta";
+          meta.textContent =
+            `time: ${entry.ts || "unknown"}\n` +
+            `sessionId: ${entry.sessionId || "-"}\n` +
+            `threadId: ${entry.threadId || "-"}\n` +
+            `ipAddress: ${entry.ipAddress || "-"}\n` +
+            `os: ${entry.os || "-"}\n` +
+            `userAgent: ${entry.userAgent || "-"}`;
+
+          item.appendChild(head);
+          item.appendChild(meta);
+
+          if (entry.message) {
+            const msg = document.createElement("pre");
+            msg.textContent = String(entry.message);
+            item.appendChild(msg);
+          }
+
+          list.appendChild(item);
+        }
+      }
+
       async function refreshHealth() {
         const result = await getJson("/health");
         el("healthBox").textContent = JSON.stringify(result, null, 2);
@@ -343,6 +479,8 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
       el("openPairUrlBtn").onclick = () => void openPairUrl();
       el("refreshStateBtn").onclick = () => void refreshState();
       el("refreshSessionsBtn").onclick = () => void refreshState();
+      el("refreshAlertsBtn").onclick = () => void refreshState();
+      el("refreshEventsBtn").onclick = () => void refreshState();
       el("revokeAllSessionsBtn").onclick = () => void revokeAllSessions();
       el("refreshHealthBtn").onclick = () => void refreshHealth();
       renderQrSvg("");

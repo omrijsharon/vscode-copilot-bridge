@@ -44,13 +44,27 @@ export class PairingStore {
 export class SessionStore {
   private readonly sessions = new Map<string, RelaySession>();
 
-  create(pairingId: string, ttlMs: number): RelaySession {
+  create(
+    pairingId: string,
+    ttlMs: number,
+    metadata?: Pick<
+      RelaySession,
+      "ipAddress" | "userAgent" | "os" | "country" | "city" | "asn" | "isp"
+    >
+  ): RelaySession {
     const createdAt = Date.now();
     const session: RelaySession = {
       sessionId: randomUUID(),
       pairingId,
       createdAt,
-      expiresAt: createdAt + ttlMs
+      expiresAt: createdAt + ttlMs,
+      ipAddress: metadata?.ipAddress,
+      userAgent: metadata?.userAgent,
+      os: metadata?.os,
+      country: metadata?.country,
+      city: metadata?.city,
+      asn: metadata?.asn,
+      isp: metadata?.isp
     };
     this.sessions.set(session.sessionId, session);
     return session;

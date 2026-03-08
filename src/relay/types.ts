@@ -5,6 +5,7 @@ export interface RelayConfig {
   appServerUrl: string;
   sessionSecret: string;
   pairingTtlMs: number;
+  sessionTtlMs: number;
   promptMaxChars: number;
   sessionRequestsPerMinute: number;
   pairingRequestsPerHour: number;
@@ -23,6 +24,13 @@ export interface RelaySession {
   pairingId: string;
   createdAt: number;
   expiresAt: number;
+  ipAddress?: string;
+  userAgent?: string;
+  os?: string;
+  country?: string;
+  city?: string;
+  asn?: string;
+  isp?: string;
 }
 
 export interface RpcRequest {
@@ -53,11 +61,27 @@ export interface RelayClientMessage {
   sandboxPolicy?: Record<string, unknown>;
 }
 
+export interface RelayMessageSegment {
+  type: "text" | "image" | "image-error";
+  text?: string;
+  path?: string;
+  url?: string;
+  reason?: string;
+}
+
+export interface RelayChatMessage {
+  role: "user" | "assistant";
+  text: string;
+  phase?: string;
+  segments?: RelayMessageSegment[];
+}
+
 export interface RelayServerEvent {
   type:
     | "session"
     | "threads"
     | "threadLoaded"
+    | "assistantMessage"
     | "assistantDelta"
     | "turnStarted"
     | "turnCompleted"
@@ -72,5 +96,12 @@ export interface RelayLogEntry {
   sessionId?: string;
   threadId?: string;
   status: "ok" | "error";
+  ipAddress?: string;
+  userAgent?: string;
+  os?: string;
+  country?: string;
+  city?: string;
+  asn?: string;
+  isp?: string;
   message?: string;
 }

@@ -20,7 +20,8 @@ export function loadRelayConfig(): RelayConfig {
   const sessionSecret =
     (process.env.CODEX_RELAY_SESSION_SECRET ?? "").trim() ||
     randomBytes(24).toString("base64url");
-  const pairingTtlMs = envNumber("CODEX_RELAY_PAIRING_TTL_MS", 5 * 60 * 1000);
+  const pairingTtlMs = envNumber("CODEX_RELAY_PAIRING_TTL_MS", 1 * 60 * 1000);
+  const sessionTtlMs = envNumber("CODEX_RELAY_SESSION_TTL_MS", 30 * 24 * 60 * 60 * 1000);
   const promptMaxChars = envNumber("CODEX_RELAY_PROMPT_MAX_CHARS", 10000);
   const sessionRequestsPerMinute = envNumber("CODEX_RELAY_SESSION_REQ_PER_MIN", 30);
   const pairingRequestsPerHour = envNumber("CODEX_RELAY_PAIRING_REQ_PER_HOUR", 20);
@@ -32,6 +33,7 @@ export function loadRelayConfig(): RelayConfig {
     appServerUrl,
     sessionSecret,
     pairingTtlMs,
+    sessionTtlMs,
     promptMaxChars,
     sessionRequestsPerMinute,
     pairingRequestsPerHour

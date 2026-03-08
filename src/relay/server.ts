@@ -1,5 +1,5 @@
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { URL } from "node:url";
@@ -11,10 +11,19 @@ import { RelayLogger } from "./logger";
 import { FixedWindowRateLimiter } from "./rateLimiter";
 import { PairingStore, SessionStore } from "./state";
 import { ThreadMetadataStore } from "./threadMetadataStore";
-import { RelayClientMessage, RelayServerEvent } from "./types";
+import { RelayChatMessage, RelayClientMessage, RelayLogEntry, RelayMessageSegment, RelayServerEvent } from "./types";
 
 const remoteClientPath = path.resolve(__dirname, "../../relay-client/index.html");
 const operatorClientPath = path.resolve(__dirname, "../../relay-client/operator.html");
+const allowedImageExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]);
+const imageMimeTypes: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml"
+};
 
 function sendJson(res: ServerResponse, statusCode: number, payload: unknown): void {
   res.writeHead(statusCode, { "content-type": "application/json; charset=utf-8" });
@@ -24,6 +33,15 @@ function sendJson(res: ServerResponse, statusCode: number, payload: unknown): vo
 function sendText(res: ServerResponse, statusCode: number, body: string): void {
   res.writeHead(statusCode, { "content-type": "text/plain; charset=utf-8" });
   res.end(body);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function relayCookieAttributes(baseUrl: string): string {
@@ -36,6 +54,131 @@ function relayCookieAttributes(baseUrl: string): string {
   ]
     .filter(Boolean)
     .join("; ");
+}
+
+function inferOs(userAgent: string): string {
+  const ua = userAgent.toLowerCase();
+  if (ua.includes("android")) {
+    return "Android";
+  }
+  if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ios")) {
+    return "iOS";
+  }
+  if (ua.includes("windows")) {
+    return "Windows";
+  }
+  if (ua.includes("mac os") || ua.includes("macintosh")) {
+    return "macOS";
+  }
+  if (ua.includes("linux")) {
+    return "Linux";
+  }
+  return "Unknown";
+}
+
+function getClientIp(req: IncomingMessage): string {
+  const cfConnectingIp = req.headers["cf-connecting-ip"];
+  if (typeof cfConnectingIp === "string" && cfConnectingIp.trim()) {
+    return cfConnectingIp.trim();
+  }
+
+  const forwardedFor = req.headers["x-forwarded-for"];
+  if (typeof forwardedFor === "string" && forwardedFor.trim()) {
+    return forwardedFor.split(",")[0]?.trim() || req.socket.remoteAddress || "";
+  }
+
+  return req.socket.remoteAddress ?? "";
+}
+
+async function lookupIpDetails(ipAddress: string): Promise<{
+  country?: string;
+  city?: string;
+  asn?: string;
+  isp?: string;
+}> {
+  if (!ipAddress) {
+    return {};
+  }
+
+  try {
+    const response = await fetch(`https://ipwho.is/${encodeURIComponent(ipAddress)}`);
+    if (!response.ok) {
+      return {};
+    }
+    const payload = (await response.json()) as Record<string, unknown>;
+    if (payload.success === false) {
+      return {};
+    }
+    return {
+      country: typeof payload.country === "string" ? payload.country : undefined,
+      city: typeof payload.city === "string" ? payload.city : undefined,
+      asn: typeof payload.connection === "object" && payload.connection
+        ? (typeof (payload.connection as Record<string, unknown>).asn === "number"
+            ? `AS${(payload.connection as Record<string, unknown>).asn}`
+            : typeof (payload.connection as Record<string, unknown>).asn === "string"
+              ? String((payload.connection as Record<string, unknown>).asn)
+              : undefined)
+        : undefined,
+      isp: typeof payload.connection === "object" && payload.connection
+        ? (typeof (payload.connection as Record<string, unknown>).isp === "string"
+            ? String((payload.connection as Record<string, unknown>).isp)
+            : undefined)
+        : undefined
+    };
+  } catch {
+    return {};
+  }
+}
+
+function buildSessionAlerts(logs: RelayLogEntry[]): Array<Record<string, string>> {
+  const successfulPairings = logs
+    .filter((entry) => entry.action === "pairingConsume" && entry.status === "ok" && entry.sessionId)
+    .sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
+
+  const alerts: Array<Record<string, string>> = [];
+  let lastIp = "";
+  let lastOs = "";
+
+  for (const entry of successfulPairings) {
+    const currentIp = entry.ipAddress || "";
+    const currentOs = entry.os || "";
+
+    if (lastIp && currentIp && currentIp !== lastIp) {
+      alerts.push({
+        type: "ipChange",
+        ts: entry.ts,
+        sessionId: entry.sessionId || "",
+        message: `New client IP detected: ${currentIp} (previous ${lastIp})`
+      });
+    }
+
+    if (lastOs && currentOs && currentOs !== lastOs) {
+      alerts.push({
+        type: "osChange",
+        ts: entry.ts,
+        sessionId: entry.sessionId || "",
+        message: `New client OS detected: ${currentOs} (previous ${lastOs})`
+      });
+    }
+
+    if (lastIp && lastOs && ((currentIp && currentIp !== lastIp) || (currentOs && currentOs !== lastOs))) {
+      alerts.push({
+        type: "fingerprintChange",
+        ts: entry.ts,
+        sessionId: entry.sessionId || "",
+        message: `Client fingerprint changed to ${currentIp || "unknown IP"} / ${currentOs || "unknown OS"}`
+      });
+    }
+
+    if (currentIp) {
+      lastIp = currentIp;
+    }
+    if (currentOs) {
+      lastOs = currentOs;
+    }
+  }
+
+  return alerts.reverse().slice(0, 20);
 }
 
 function parseCookies(req: IncomingMessage): Record<string, string> {
@@ -150,6 +293,124 @@ async function enrichThread(
   return out;
 }
 
+function getThreadWorkspace(thread: Record<string, unknown>): string {
+  const runtime = thread.runtime && typeof thread.runtime === "object"
+    ? (thread.runtime as Record<string, unknown>)
+    : {};
+  if (typeof runtime.cwd === "string" && runtime.cwd.trim()) {
+    return path.resolve(runtime.cwd);
+  }
+  if (typeof thread.cwd === "string" && thread.cwd.trim()) {
+    return path.resolve(thread.cwd);
+  }
+  return "";
+}
+
+function resolveImagePath(
+  thread: Record<string, unknown>,
+  referencedPath: string
+): { ok: true; workspace: string; resolvedPath: string; ext: string } | { ok: false; reason: string } {
+  const workspace = getThreadWorkspace(thread);
+  if (!workspace) {
+    return { ok: false, reason: "thread workspace is unavailable" };
+  }
+
+  const candidate = referencedPath.trim();
+  if (!candidate) {
+    return { ok: false, reason: "image path is empty" };
+  }
+
+  const resolvedPath = path.isAbsolute(candidate)
+    ? path.resolve(candidate)
+    : path.resolve(workspace, candidate);
+  const relative = path.relative(workspace, resolvedPath);
+  if (!relative || relative === "") {
+    return { ok: false, reason: "image path must point to a file inside the workspace" };
+  }
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    return { ok: false, reason: "image path is outside the workspace" };
+  }
+
+  const ext = path.extname(resolvedPath).toLowerCase();
+  if (!allowedImageExtensions.has(ext)) {
+    return { ok: false, reason: "file is not a supported image type" };
+  }
+
+  return { ok: true, workspace, resolvedPath, ext };
+}
+
+async function buildImageSegment(
+  threadId: string,
+  thread: Record<string, unknown>,
+  referencedPath: string
+): Promise<RelayMessageSegment> {
+  const resolved = resolveImagePath(thread, referencedPath);
+  if (!resolved.ok) {
+    return {
+      type: "image-error",
+      path: referencedPath,
+      reason: resolved.reason
+    };
+  }
+
+  try {
+    const fileStat = await stat(resolved.resolvedPath);
+    if (!fileStat.isFile()) {
+      return {
+        type: "image-error",
+        path: referencedPath,
+        reason: "image path does not point to a regular file"
+      };
+    }
+  } catch {
+    return {
+      type: "image-error",
+      path: referencedPath,
+      reason: "image file does not exist"
+    };
+  }
+
+  return {
+    type: "image",
+    path: referencedPath,
+    url: `/api/thread/image?threadId=${encodeURIComponent(threadId)}&path=${encodeURIComponent(referencedPath)}`
+  };
+}
+
+async function parseAssistantSegments(
+  threadId: string,
+  thread: Record<string, unknown>,
+  text: string
+): Promise<RelayMessageSegment[]> {
+  const segments: RelayMessageSegment[] = [];
+  const pattern = /<img>([\s\S]*?)<\/img>/gi;
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    const [fullMatch, rawPath = ""] = match;
+    const start = match.index;
+    if (start > cursor) {
+      const prefix = text.slice(cursor, start);
+      if (prefix) {
+        segments.push({ type: "text", text: prefix });
+      }
+    }
+
+    segments.push(await buildImageSegment(threadId, thread, rawPath.trim()));
+    cursor = start + fullMatch.length;
+  }
+
+  if (cursor < text.length) {
+    const suffix = text.slice(cursor);
+    if (suffix) {
+      segments.push({ type: "text", text: suffix });
+    }
+  }
+
+  return segments.length ? segments : [{ type: "text", text }];
+}
+
 async function makePairingQrSvg(pairUrl: string): Promise<string> {
   return QRCode.toString(pairUrl, {
     type: "svg",
@@ -180,9 +441,12 @@ function flattenTextContent(content: unknown): string {
     .join("\n");
 }
 
-function threadToMessages(thread: Record<string, unknown>): Array<{ role: "user" | "assistant"; text: string; phase?: string }> {
+async function threadToMessages(
+  thread: Record<string, unknown>
+): Promise<RelayChatMessage[]> {
   const turns = Array.isArray(thread.turns) ? thread.turns : [];
-  const out: Array<{ role: "user" | "assistant"; text: string; phase?: string }> = [];
+  const out: RelayChatMessage[] = [];
+  const threadId = typeof thread.id === "string" ? thread.id : "";
 
   for (const turn of turns) {
     if (!turn || typeof turn !== "object") {
@@ -203,7 +467,8 @@ function threadToMessages(thread: Record<string, unknown>): Array<{ role: "user"
           out.push({
             role: "assistant",
             text,
-            phase: typeof item.phase === "string" ? item.phase : undefined
+            phase: typeof item.phase === "string" ? item.phase : undefined,
+            segments: await parseAssistantSegments(threadId, thread, text)
           });
         }
       }
@@ -248,6 +513,8 @@ async function main(): Promise<void> {
     }
 
     let activeThreadId = "";
+    let activeThread: Record<string, unknown> | null = null;
+    let currentAssistantText = "";
 
     sendWs(ws, {
       type: "session",
@@ -264,11 +531,17 @@ async function main(): Promise<void> {
           : {};
 
       if (method === "turn/started") {
+        currentAssistantText = "";
         sendWs(ws, { type: "turnStarted", threadId: activeThreadId });
         return;
       }
 
       if (method === "item/agentMessage/delta") {
+        currentAssistantText +=
+          (typeof params.delta === "string" && params.delta) ||
+          (typeof params.textDelta === "string" && params.textDelta) ||
+          (typeof params.text === "string" && params.text) ||
+          "";
         sendWs(ws, {
           type: "assistantDelta",
           threadId: activeThreadId,
@@ -282,7 +555,45 @@ async function main(): Promise<void> {
       }
 
       if (method === "turn/completed") {
-        sendWs(ws, { type: "turnCompleted", threadId: activeThreadId });
+        void (async () => {
+          if (activeThreadId && currentAssistantText) {
+            try {
+              const result = await appServer.call<{ thread?: Record<string, unknown> }>("thread/read", {
+                threadId: activeThreadId,
+                includeTurns: false
+              });
+              activeThread = await enrichThread(result?.thread ?? { id: activeThreadId }, metadataStore);
+              sendWs(ws, {
+                type: "assistantMessage",
+                threadId: activeThreadId,
+                message: {
+                  role: "assistant",
+                  text: currentAssistantText,
+                  segments: await parseAssistantSegments(activeThreadId, activeThread, currentAssistantText)
+                }
+              });
+            } catch (error) {
+              sendWs(ws, {
+                type: "assistantMessage",
+                threadId: activeThreadId,
+                message: {
+                  role: "assistant",
+                  text: currentAssistantText,
+                  segments: [
+                    { type: "text", text: currentAssistantText },
+                    {
+                      type: "image-error",
+                      path: "",
+                      reason: error instanceof Error ? error.message : String(error)
+                    }
+                  ]
+                }
+              });
+            }
+          }
+          currentAssistantText = "";
+          sendWs(ws, { type: "turnCompleted", threadId: activeThreadId });
+        })();
         return;
       }
 
@@ -356,10 +667,11 @@ async function main(): Promise<void> {
             includeTurns: true
           });
           const thread = await enrichThread(result?.thread ?? {}, metadataStore);
+          activeThread = thread;
           sendWs(ws, {
             type: "threadLoaded",
             thread,
-            messages: threadToMessages(thread)
+            messages: await threadToMessages(thread)
           });
           logger.record({
             ts: new Date().toISOString(),
@@ -402,6 +714,7 @@ async function main(): Promise<void> {
             result.thread && typeof result.thread === "object"
               ? await enrichThread(result.thread as Record<string, unknown>, metadataStore)
               : await enrichThread({ id: threadId }, metadataStore);
+          activeThread = thread;
           sendWs(ws, { type: "threadLoaded", thread, messages: [], settings: result });
           logger.record({
             ts: new Date().toISOString(),
@@ -547,7 +860,7 @@ async function main(): Promise<void> {
       }
 
       if (req.method === "POST" && url.pathname === "/api/pairing/start") {
-        const rate = pairingRateLimiter.take(req.socket.remoteAddress ?? "unknown");
+        const rate = pairingRateLimiter.take(getClientIp(req) || "unknown");
         if (!rate.allowed) {
           logger.record({
             ts: new Date().toISOString(),
@@ -593,7 +906,19 @@ async function main(): Promise<void> {
           return;
         }
 
-        const session = sessions.create(pairing.pairingId, config.pairingTtlMs * 12);
+        const userAgent = String(req.headers["user-agent"] ?? "");
+        const ipAddress = getClientIp(req);
+        const os = inferOs(userAgent);
+        const ipDetails = await lookupIpDetails(ipAddress);
+        const session = sessions.create(pairing.pairingId, config.sessionTtlMs, {
+          ipAddress,
+          userAgent,
+          os,
+          country: ipDetails.country,
+          city: ipDetails.city,
+          asn: ipDetails.asn,
+          isp: ipDetails.isp
+        });
         const signature = SessionStore.signSession(session.sessionId, config.sessionSecret);
         res.writeHead(200, {
           "content-type": "text/html; charset=utf-8",
@@ -607,7 +932,14 @@ async function main(): Promise<void> {
           kind: "http",
           action: "pairingConsume",
           sessionId: session.sessionId,
-          status: "ok"
+          status: "ok",
+          ipAddress,
+          userAgent,
+          os,
+          country: ipDetails.country,
+          city: ipDetails.city,
+          asn: ipDetails.asn,
+          isp: ipDetails.isp
         });
         return;
       }
@@ -629,10 +961,67 @@ async function main(): Promise<void> {
           approvalPolicies: ["on-request", "never", "untrusted"],
           sandboxPolicies: [
             { label: "Read Only", value: "readOnly", payload: { type: "readOnly" } },
-            { label: "Workspace Write", value: "workspaceWrite", payload: { type: "workspace-write" } },
-            { label: "Danger Full Access", value: "dangerFullAccess", payload: { type: "danger-full-access" } }
+            { label: "Workspace Write", value: "workspaceWrite", payload: { type: "workspaceWrite" } },
+            { label: "Danger Full Access", value: "dangerFullAccess", payload: { type: "dangerFullAccess" } },
+            { label: "External Sandbox", value: "externalSandbox", payload: { type: "externalSandbox" } }
           ]
         });
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/thread/image") {
+        const session = getSession(req, config.sessionSecret, sessions);
+        if (!session) {
+          sendJson(res, 401, { error: "unauthenticated" });
+          return;
+        }
+
+        const threadId = url.searchParams.get("threadId") ?? "";
+        const referencedPath = url.searchParams.get("path") ?? "";
+        if (!threadId || !validateThreadId(threadId)) {
+          sendJson(res, 400, { error: "invalid threadId" });
+          return;
+        }
+        if (!referencedPath.trim()) {
+          sendJson(res, 400, { error: "path is required" });
+          return;
+        }
+
+        await appServer.call("thread/resume", { threadId });
+        const result = await appServer.call<{ thread?: Record<string, unknown> }>("thread/read", {
+          threadId,
+          includeTurns: false
+        });
+        const thread = await enrichThread(result?.thread ?? { id: threadId }, metadataStore);
+        const resolved = resolveImagePath(thread, referencedPath);
+        if (!resolved.ok) {
+          sendJson(res, 403, { error: resolved.reason });
+          return;
+        }
+
+        try {
+          const fileStat = await stat(resolved.resolvedPath);
+          if (!fileStat.isFile()) {
+            sendJson(res, 404, { error: "image file does not exist" });
+            return;
+          }
+        } catch {
+          sendJson(res, 404, { error: "image file does not exist" });
+          return;
+        }
+
+        const mimeType = imageMimeTypes[resolved.ext];
+        if (!mimeType) {
+          sendJson(res, 415, { error: "unsupported image type" });
+          return;
+        }
+
+        const data = await readFile(resolved.resolvedPath);
+        res.writeHead(200, {
+          "content-type": mimeType,
+          "cache-control": "private, max-age=60"
+        });
+        res.end(data);
         return;
       }
 
@@ -683,10 +1072,12 @@ async function main(): Promise<void> {
       }
 
       if (req.method === "GET" && url.pathname === "/api/operator/state") {
+        const logs = logger.list();
         sendJson(res, 200, {
           pairings: pairings.list(),
           sessions: sessions.list(),
-          logs: logger.list(),
+          logs,
+          alerts: buildSessionAlerts(logs),
           relay: {
             baseUrl: config.publicBaseUrl,
             appServerUrl: config.appServerUrl,
@@ -813,7 +1204,7 @@ async function main(): Promise<void> {
           threadId: parsed.threadId,
           status: "ok"
         });
-        sendJson(res, 200, { ...result, thread });
+        sendJson(res, 200, { ...result, thread, messages: await threadToMessages(thread) });
         return;
       }
 
