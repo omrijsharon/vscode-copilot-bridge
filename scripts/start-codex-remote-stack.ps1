@@ -10,9 +10,26 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$codexExe = "C:\Users\tamipinhasi\.vscode\extensions\openai.chatgpt-26.304.20706-win32-x64\bin\windows-x86_64\codex.exe"
 $cloudflaredExe = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
 $appServerPort = ([Uri]$AppServerUrl).Port
+$extensionsRoot = Join-Path $env:USERPROFILE ".vscode\extensions"
+
+function Resolve-CodexExe() {
+  $candidates = Get-ChildItem $extensionsRoot -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -like "openai.chatgpt-*-win32-x64" } |
+    Sort-Object Name -Descending
+
+  foreach ($candidate in $candidates) {
+    $exe = Join-Path $candidate.FullName "bin\windows-x86_64\codex.exe"
+    if (Test-Path $exe) {
+      return $exe
+    }
+  }
+
+  return $null
+}
+
+$codexExe = Resolve-CodexExe
 
 if ([string]::IsNullOrWhiteSpace($PublicBaseUrl)) {
   $PublicBaseUrl = $env:CODEX_RELAY_BASE_URL
@@ -31,7 +48,7 @@ if ([string]::IsNullOrWhiteSpace($SessionSecret)) {
 }
 
 if (-not (Test-Path $codexExe)) {
-  throw "Codex executable not found at: $codexExe"
+  throw "Codex executable not found under: $extensionsRoot"
 }
 
 if (-not (Test-Path $cloudflaredExe)) {
