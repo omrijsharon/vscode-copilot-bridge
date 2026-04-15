@@ -52,18 +52,19 @@ function renderOperatorLoginShell(): string {
     <title>Codex Relay Operator</title>
     <style>
       :root {
-        --bg: #efe7da;
-        --panel: #fffaf3;
-        --ink: #201813;
-        --muted: #77685d;
-        --line: #d7c8b9;
-        --accent: #225d4a;
+        --bg: #0b141a;
+        --panel: #1f2c34;
+        --ink: #e9edef;
+        --muted: #8696a0;
+        --line: #2a3942;
+        --accent: #00a884;
+        --input-bg: #2a3942;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        background: linear-gradient(180deg, #f6ede2, var(--bg));
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
         color: var(--ink);
       }
       .shell {
@@ -82,7 +83,7 @@ function renderOperatorLoginShell(): string {
       }
       input[type="password"] {
         border: 1px solid var(--line);
-        background: #fffdf9;
+        background: var(--input-bg);
         color: var(--ink);
         border-radius: 10px;
         padding: 10px 14px;
@@ -92,7 +93,7 @@ function renderOperatorLoginShell(): string {
       button {
         border: 1px solid var(--accent);
         background: var(--accent);
-        color: #fffaf3;
+        color: #fff;
         border-radius: 10px;
         padding: 10px 14px;
         font: inherit;
@@ -108,9 +109,10 @@ function renderOperatorLoginShell(): string {
         white-space: pre-wrap;
         border: 1px solid var(--line);
         border-radius: 12px;
-        background: #fffdf9;
+        background: var(--bg);
         padding: 12px;
         font-family: Consolas, "Courier New", monospace;
+        color: var(--muted);
       }
     </style>
   </head>

@@ -6,18 +6,19 @@
     <title>Codex Relay Operator</title>
     <style>
       :root {
-        --bg: #efe7da;
-        --panel: #fffaf3;
-        --ink: #201813;
-        --muted: #77685d;
-        --line: #d7c8b9;
-        --accent: #225d4a;
+        --bg: #0b141a;
+        --panel: #1f2c34;
+        --ink: #e9edef;
+        --muted: #8696a0;
+        --line: #2a3942;
+        --accent: #00a884;
+        --input-bg: #2a3942;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        background: linear-gradient(180deg, #f6ede2, var(--bg));
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
         color: var(--ink);
       }
       .shell {
@@ -35,7 +36,7 @@
       button {
         border: 1px solid var(--accent);
         background: var(--accent);
-        color: #fffaf3;
+        color: #fff;
         border-radius: 10px;
         padding: 10px 14px;
         font: inherit;
@@ -43,7 +44,7 @@
       }
       input[type="password"] {
         border: 1px solid var(--line);
-        background: #fffdf9;
+        background: var(--input-bg);
         color: var(--ink);
         border-radius: 10px;
         padding: 10px 14px;
@@ -59,9 +60,10 @@
         white-space: pre-wrap;
         border: 1px solid var(--line);
         border-radius: 12px;
-        background: #fffdf9;
+        background: var(--bg);
         padding: 12px;
         font-family: Consolas, "Courier New", monospace;
+        color: var(--muted);
       }
       .muted { color: var(--muted); }
       .pairing-grid {
@@ -88,7 +90,7 @@
         width: 280px;
         height: 280px;
         background: #ffffff;
-        border: 1px solid #f1ece4;
+        border: 1px solid var(--line);
         border-radius: 8px;
       }
       .row {
@@ -110,7 +112,7 @@
         border: 1px solid var(--line);
         border-radius: 12px;
         padding: 12px;
-        background: #fffdf9;
+        background: var(--bg);
       }
       .session-meta {
         font-family: Consolas, "Courier New", monospace;
@@ -125,13 +127,13 @@
         border: 1px solid var(--line);
         border-radius: 12px;
         padding: 12px;
-        background: #fffdf9;
+        background: var(--bg);
       }
       .alert-item {
-        border: 1px solid #d9b778;
+        border: 1px solid #5c4a1e;
         border-radius: 12px;
         padding: 12px;
-        background: #fff7e8;
+        background: #2a2210;
       }
       .event-head {
         display: flex;
@@ -153,17 +155,17 @@
         border-radius: 999px;
         padding: 2px 8px;
         font-size: 12px;
-        background: #fffaf3;
+        background: var(--panel);
       }
       .badge.error {
-        border-color: #d98f86;
-        color: #8b2e2a;
-        background: #fff1ef;
+        border-color: #5c2b2b;
+        color: #ea4335;
+        background: #2a1515;
       }
       .modal {
         position: fixed;
         inset: 0;
-        background: rgba(32, 24, 19, 0.4);
+        background: rgba(0, 0, 0, 0.5);
         display: none;
         align-items: center;
         justify-content: center;

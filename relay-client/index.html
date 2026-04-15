@@ -5,134 +5,134 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Codex Remote Relay</title>
 <style>
-:root{--bg:#efe6d8;--panel:#fffaf2;--ink:#1f1914;--muted:#75675d;--line:#d9c9b8;--accent:#225d4a;--soft:#edf7f1;--danger:#a3312c;--shadow:0 16px 36px rgba(61,42,28,.12);--composerHeight:60px}
+:root{--bg:#0b141a;--panel:#1f2c34;--ink:#e9edef;--muted:#8696a0;--line:#2a3942;--accent:#00a884;--soft:#005c4b;--danger:#ea4335;--shadow:0 4px 12px rgba(0,0,0,.3);--composerHeight:44px;--user-bubble:#005c4b;--assistant-bubble:#1f2c34;--header-bg:#1f2c34;--composer-bg:#1f2c34;--input-bg:#2a3942}
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;font-family:Georgia,"Times New Roman",serif;background:linear-gradient(180deg,#f6ede2,var(--bg));color:var(--ink)}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
 button,input,select,textarea{font:inherit}
-button{border:1px solid var(--accent);background:var(--accent);color:#fffaf2;border-radius:14px;padding:11px 14px;cursor:pointer}
-button.subtle{background:#fffdf9;color:var(--ink);border-color:var(--line)}
+button{border:none;background:var(--accent);color:#fff;border-radius:20px;padding:8px 14px;cursor:pointer;font-size:14px}
+button.subtle{background:var(--input-bg);color:var(--ink)}
 button.ghost{background:transparent;color:var(--accent)}
-button.icon{width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:22px}
-button.sendIcon{width:52px;min-width:52px;height:52px;border-radius:16px;padding:0;display:grid;place-items:center}
-button.scrollJump{position:absolute;right:16px;bottom:16px;width:44px;height:44px;border-radius:999px;padding:0;display:none;place-items:center;box-shadow:0 8px 18px rgba(31,25,20,.18)}
+button.icon{width:40px;height:40px;padding:0;display:grid;place-items:center;font-size:20px;background:transparent;color:var(--muted);border-radius:50%}
+button.sendIcon{width:48px;min-width:48px;height:48px;border-radius:50%;padding:0;display:grid;place-items:center}
+button.scrollJump{position:absolute;right:16px;bottom:16px;width:40px;height:40px;border-radius:999px;padding:0;display:none;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.4);background:var(--panel);color:var(--ink)}
 button.scrollJump.show{display:grid}
 svg{display:block}
-input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fffdf9;color:var(--ink)}
-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-textarea{resize:none;min-height:56px;max-height:160px}
-.app{height:100dvh;max-height:100dvh;max-width:480px;margin:0 auto;background:rgba(255,250,242,.72);backdrop-filter:blur(10px);box-shadow:var(--shadow);overflow:hidden}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--input-bg);color:var(--ink)}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+textarea{resize:none;min-height:44px;max-height:160px}
+.app{height:100dvh;max-height:100dvh;max-width:480px;margin:0 auto;background:var(--bg);overflow:hidden}
 .screen{display:none;height:100%;min-height:0;flex-direction:column}
 .screen.active{display:flex}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 16px 14px;background:rgba(255,250,242,.92);border-bottom:1px solid rgba(217,201,184,.8);position:sticky;top:0;z-index:3}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--header-bg);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3;min-height:50px}
 .title h1,.title h2,.title p{margin:0}
-.title h1,.title h2{font-size:28px;line-height:1.05}
-.title p{margin-top:4px;color:var(--muted);font-size:14px}
-.body{padding:16px;display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
-.screen#threads .body{overflow:auto}
+.title h1{font-size:20px;line-height:1.2;font-weight:600}
+.title h2{font-size:17px;line-height:1.2;font-weight:600}
+.title p{margin-top:2px;color:var(--muted);font-size:12px}
+.headerRow{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.headerPill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+.headerPill .dot{width:8px;height:8px;border-radius:50%;background:var(--danger)}
+.headerPill.connected .dot{background:var(--accent)}
+.statusText{font-size:12px;color:var(--muted);padding:4px 16px 2px;display:none}
+.statusText.show{display:block}
+.body{padding:0;display:flex;flex-direction:column;gap:0;flex:1;min-height:0}
+.screen#threads .body{overflow:auto;position:relative}
 .screen#chat{overflow:hidden}
 .screen#chat .body{overflow:hidden;padding:0}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:0 10px 24px rgba(61,42,28,.06)}
-.hero{padding:18px;background:linear-gradient(135deg,#fffaf2,#f4ecdf)}
-.hero p{margin:8px 0 0;color:var(--muted);line-height:1.45}
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.actions,.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;background:#fffdf9;padding:6px 12px;font-size:13px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--danger)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:none}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.actions,.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;background:var(--input-bg);padding:4px 10px;font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--danger)}
 .connected .dot{background:var(--accent)}
 .muted{color:var(--muted);font-size:13px}
-.threads{display:flex;flex-direction:column;gap:10px;min-height:0}
-.thread{width:100%;text-align:left;border:1px solid var(--line);background:#fffdf9;border-radius:18px;padding:14px;color:var(--ink)}
-.thread.active{border-color:var(--accent);background:var(--soft)}
-.thread .name{font-size:18px}
-.empty{text-align:center;padding:24px 12px;border:1px dashed var(--line);border-radius:18px;background:rgba(255,253,249,.8);color:var(--muted)}
+.threads{display:flex;flex-direction:column;gap:0;min-height:0}
+.thread{width:100%;text-align:left;border:none;border-bottom:1px solid var(--line);background:transparent;border-radius:0;padding:12px 16px;color:var(--ink);display:flex;align-items:center;gap:12px}
+.thread:active{background:rgba(0,168,132,.12)}
+.thread.active{border-color:var(--line);background:rgba(0,168,132,.08)}
+.thread .avatar{width:48px;height:48px;min-width:48px;border-radius:50%;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:18px;font-weight:700}
+.thread .threadContent{flex:1;min-width:0}
+.thread .name{font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread .preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.fab{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);right:16px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.35);z-index:2;font-size:28px;padding:0;border:none;cursor:pointer}
+.empty{text-align:center;padding:24px 16px;border:none;border-radius:0;background:transparent;color:var(--muted)}
 .tid{font-family:Consolas,"Courier New",monospace;font-size:12px;color:var(--muted);word-break:break-all}
-.runtime{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
-.chip{border:1px solid var(--line);border-radius:14px;background:#fffdf9;padding:10px 12px}
-.chip strong{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
-.chip span{display:block;font-size:14px;word-break:break-word}
+.runtime{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.chip{border:1px solid var(--line);border-radius:8px;background:var(--input-bg);padding:8px 10px}
+.chip strong{display:block;font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.chip span{display:block;font-size:13px;word-break:break-word}
 .chatLayout{display:flex;flex-direction:column;flex:1;min-height:0;gap:0;overflow:hidden}
+.chatAvatar{width:32px;height:32px;min-width:32px;border-radius:50%;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:14px;font-weight:700}
 .threadHeaderBtn{display:block;width:100%;text-align:left;background:transparent;border:0;padding:0;color:inherit;border-radius:0}
 .threadHeaderBtn:hover{background:transparent}
-.threadHeaderBtn:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
-.chatPreview{margin-top:6px;color:var(--muted);font-size:14px;line-height:1.45}
+.threadHeaderBtn:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.chatPreview{margin-top:1px;color:var(--muted);font-size:12px;line-height:1.3}
 .chatPreview.hide{display:none}
 .transcriptCard{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;padding:0;overflow:hidden;background:transparent;border:0;border-radius:0;box-shadow:none}
 .transcriptWrap{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
-.transcript{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:8px 16px 10px}
-.transcriptEmpty{margin:auto;border:1px dashed var(--line);border-radius:18px;padding:18px 16px;text-align:center;color:var(--muted);background:rgba(255,253,249,.8);max-width:420px}
-.msg{max-width:88%;border:1px solid var(--line);border-radius:18px;padding:12px 14px;background:#fffefb}
-.msg.user{align-self:flex-end;background:#dff4e8;border-color:#bfdcc7}
-.msg.assistant{align-self:flex-start;background:#fff8f4}
-.role{display:block;margin-bottom:6px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11px}
-.text{white-space:pre-wrap;line-height:1.5;word-break:break-word}
-.segments{display:flex;flex-direction:column;gap:10px}
-.imageCard,.imageError{border:1px solid var(--line);border-radius:14px;padding:10px;background:#fffdf9}
+.transcript{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:3px;padding:6px 12px 8px;background-color:#0a1014;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5l5 3-5 3-5-3zm0 44l5 3-5 3-5-3zM5 18l5 3-5 3-5-3zm50 0l5 3-5 3-5-3zM5 36l5 3-5 3-5-3zm50 0l5 3-5 3-5-3z' fill='%23ffffff' fill-opacity='.015' fill-rule='evenodd'/%3E%3C/svg%3E")}
+.transcriptEmpty{margin:auto;border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--muted);background:var(--panel);max-width:320px;font-size:13px}
+.msg{max-width:80%;border:none;border-radius:8px;padding:6px 10px 8px;font-size:14.5px;line-height:1.4;position:relative}
+.msg.user{align-self:flex-end;background:var(--user-bubble);color:#e9edef;border-top-right-radius:0}
+.msg.user::before{content:'';position:absolute;top:0;right:-6px;width:0;height:0;border-left:6px solid var(--user-bubble);border-top:6px solid transparent}
+.msg.assistant{align-self:flex-start;background:var(--assistant-bubble);color:#e9edef;border-top-left-radius:0}
+.msg.assistant::before{content:'';position:absolute;top:0;left:-6px;width:0;height:0;border-right:6px solid var(--assistant-bubble);border-top:6px solid transparent}
+.role{display:none}
+.text{white-space:pre-wrap;line-height:1.45;word-break:break-word}
+.segments{display:flex;flex-direction:column;gap:8px}
+.imageCard,.imageError{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--panel)}
 .imageCard a{display:block;color:inherit;text-decoration:none}
-.imageCard img{display:block;max-width:100%;height:auto;border-radius:10px;background:#fff}
-.imageMeta{margin-top:8px;font-size:12px;color:var(--muted);word-break:break-word}
-.imageError{border-color:#d9b0a8;background:#fff2ef;color:#7b2f28}
-.imageError strong{display:block;margin-bottom:4px}
-.composerCard{padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 10px);background:rgba(255,250,242,.98);border:0;border-top:1px solid rgba(217,201,184,.8);border-radius:0;box-shadow:none}
-.composerRow{display:flex;align-items:stretch;gap:10px}
-.composerBox{flex:1}
-.composerBox{display:flex}
-.composerBox textarea{height:var(--composerHeight);min-height:var(--composerHeight);max-height:160px}
-.sendIcon{align-self:stretch;height:var(--composerHeight);min-height:var(--composerHeight)}
-.menu,.modal{position:fixed;inset:0;background:rgba(18,12,9,.38);display:none;z-index:10}
+.imageCard img{display:block;max-width:100%;height:auto;border-radius:8px;background:var(--panel)}
+.imageMeta{margin-top:6px;font-size:11px;color:var(--muted);word-break:break-word}
+.imageError{border-color:#5c2b2b;background:#2a1515;color:#ea4335}
+.imageError strong{display:block;margin-bottom:4px;font-size:13px}
+.composerCard{padding:6px 10px calc(env(safe-area-inset-bottom,0px) + 6px);background:var(--composer-bg);border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none}
+.composerRow{display:flex;align-items:flex-end;gap:8px}
+.composerBox{flex:1;display:flex}
+.composerBox textarea{height:var(--composerHeight);min-height:var(--composerHeight);max-height:160px;border-radius:22px;padding:10px 14px}
+.sendIcon{align-self:flex-end;height:48px;min-height:48px}
+.menu,.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:10}
 .menu.open,.modal.open{display:block}
-.sheet,.dialog{position:absolute;top:0;right:0;width:min(380px,88vw);height:100%;background:#fffaf2;border-left:1px solid var(--line);padding:20px 16px 24px;overflow:auto;box-shadow:-16px 0 32px rgba(31,25,20,.12)}
-.dialog{left:50%;top:50%;right:auto;width:min(520px,calc(100vw - 28px));height:auto;max-height:calc(100dvh - 28px);transform:translate(-50%,-50%);border:1px solid var(--line);border-radius:24px;box-shadow:0 20px 48px rgba(31,25,20,.22)}
-.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.section{border:1px solid var(--line);border-radius:16px;background:#fffdf9;padding:12px;margin-bottom:12px}
-.stack{display:flex;flex-direction:column;gap:8px}
-.mono{white-space:pre-wrap;margin:0;font-family:Consolas,"Courier New",monospace;font-size:12px;color:var(--muted)}
-.toggleRow{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.form{display:grid;gap:12px}
-.note{color:var(--muted);font-size:13px;line-height:1.45}
+.sheet{position:absolute;top:0;right:0;width:min(340px,85vw);height:100%;background:var(--panel);border-left:1px solid var(--line);padding:14px 14px 18px;overflow:auto;box-shadow:-4px 0 16px rgba(0,0,0,.3);color:var(--ink)}
+.dialog{position:absolute;left:50%;top:50%;right:auto;width:min(480px,calc(100vw - 24px));height:auto;max-height:calc(100dvh - 24px);transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);color:var(--ink)}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.head h3{font-size:16px;font-weight:600;margin:0}
+.head h4,.section h4{font-size:13px;font-weight:600;margin:0 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.section{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px;margin-bottom:10px}
+.stack{display:flex;flex-direction:column;gap:6px}
+.mono{white-space:pre-wrap;margin:0;font-family:Consolas,"Courier New",monospace;font-size:11px;color:var(--muted)}
+.toggleRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.form{display:grid;gap:10px}
+.note{color:var(--muted);font-size:12px;line-height:1.4}
 .hide{display:none!important}
 @media (max-width:899px){.grid2,.runtime,.actions{grid-template-columns:1fr}}
-@media (min-width:900px){body{padding:18px}.app{max-width:1200px;height:calc(100dvh - 36px);max-height:calc(100dvh - 36px);border-radius:28px;display:grid;grid-template-columns:380px 1fr}.screen{display:flex;height:100%;min-height:0}#threads{border-right:1px solid var(--line)}.back{display:none}.screen#chat .body{padding:16px}.chatLayout{gap:12px}.transcriptCard{padding:0;background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 24px rgba(61,42,28,.06)}.transcript{padding:12px}.composerCard{padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:0 10px 24px rgba(61,42,28,.06)}}
+@media (min-width:900px){body{padding:12px}.app{max-width:1200px;height:calc(100dvh - 24px);max-height:calc(100dvh - 24px);border-radius:10px;display:grid;grid-template-columns:360px 1fr;border:1px solid var(--line);box-shadow:var(--shadow)}.screen{display:flex;height:100%;min-height:0}#threads{border-right:1px solid var(--line)}.back{display:none}.screen#chat .body{padding:0}.chatLayout{gap:0}.transcriptCard{padding:0;background:transparent;border:0;border-radius:0;box-shadow:none}.transcript{padding:8px 14px}.composerCard{padding:6px 12px;background:var(--composer-bg);border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none}}
 </style>
 </head>
 <body>
 <div class="app">
   <section class="screen active" id="threads">
     <div class="top">
-      <div class="title">
-        <h1>Threads</h1>
-        <p>Pick a Codex conversation to continue remotely.</p>
+      <div class="headerRow">
+        <div class="title"><h1>Codex</h1></div>
+        <div class="headerPill" id="relayPill"><span class="dot"></span><span id="relayLabel">Offline</span></div>
       </div>
       <button class="icon" id="threadsMenuBtn">&#9776;</button>
     </div>
+    <div id="statusBar" class="statusText"><span id="status">Connecting...</span></div>
     <div class="body">
-      <div class="card hero">
-        <div class="row">
-          <div class="pill" id="relayPill"><span class="dot"></span><span id="relayLabel">Disconnected</span></div>
-          <button class="subtle" id="connectBtn">Connect Relay</button>
-        </div>
-        <p id="status">Relay socket not connected.</p>
-      </div>
-      <div class="card">
-        <div class="row">
-          <strong>Conversations</strong>
-          <div class="muted" id="sessionSummary">Session not checked yet.</div>
-        </div>
-        <div class="actions" style="margin-top:12px">
-          <button id="refreshThreadsBtn">Refresh Threads</button>
-          <button class="subtle" id="newThreadBtn">New Thread</button>
-        </div>
-      </div>
       <div class="threads" id="threadList"></div>
-      <div class="empty hide" id="emptyThreads">No threads loaded yet.</div>
+      <div class="empty hide" id="emptyThreads">No threads yet. Tap + to start.</div>
+      <button class="fab" id="fabNewThread" aria-label="New thread">+</button>
     </div>
   </section>
 
   <section class="screen" id="chat">
     <div class="top">
-      <div class="row" style="flex:1;justify-content:flex-start;align-items:center;flex-wrap:nowrap">
+      <div class="headerRow">
         <button class="icon back" id="backBtn">&#8592;</button>
-        <div class="title">
+        <div class="chatAvatar" id="chatAvatar">C</div>
+        <div class="title" style="flex:1;min-width:0">
           <button class="threadHeaderBtn" id="threadHeaderBtn" type="button" aria-expanded="false">
             <h2 id="chatTitle">Conversation</h2>
             <p id="chatSubtitle" class="chatPreview hide">Select a thread to begin.</p>
@@ -157,7 +157,7 @@ textarea{resize:none;min-height:56px;max-height:160px}
       <div class="card composerCard">
         <div class="composerRow">
           <div class="composerBox">
-            <textarea id="promptBox" placeholder="Write a message to this thread..."></textarea>
+            <textarea id="promptBox" placeholder="Message"></textarea>
           </div>
           <button class="sendIcon" id="sendBtn" aria-label="Send message">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -172,7 +172,8 @@ textarea{resize:none;min-height:56px;max-height:160px}
 
 <div class="menu" id="threadsMenu">
   <div class="sheet">
-    <div class="head"><h3>Threads Menu</h3><button class="icon subtle" id="closeThreadsMenuBtn">&times;</button></div>
+    <div class="head"><h3>Menu</h3><button class="icon subtle" id="closeThreadsMenuBtn">&times;</button></div>
+    <div class="section"><h4>Threads</h4><div class="stack"><button id="refreshThreadsMenuBtn">Refresh Threads</button></div></div>
     <div class="section"><h4>Session</h4><div class="stack"><button id="refreshSessionBtn">Refresh Session</button><button class="subtle" id="pairingBtn">Create Pairing</button><button class="subtle" id="revokeBtn">Revoke This Session</button><button class="ghost" id="logoutBtn">Logout</button></div></div>
     <div class="section"><h4>Session Details</h4><pre class="mono" id="sessionBox">Not checked yet.</pre></div>
     <div class="section"><h4>Pairing</h4><pre class="mono" id="pairingBox">No pairing created yet.</pre></div>
@@ -216,8 +217,8 @@ const remembered = () => storageKey() ? (localStorage.getItem(storageKey()) || '
 const clearRemembered = () => { if (storageKey()) localStorage.removeItem(storageKey()); };
 const isDesktop = () => window.matchMedia('(min-width: 900px)').matches;
 function showScreen(name){const t=el('threads'),c=el('chat');if(isDesktop()){t.classList.add('active');c.classList.add('active');return}t.classList.toggle('active',name==='threads');c.classList.toggle('active',name==='chat')}
-function setStatus(text){el('status').textContent=text}
-function setSummary(text){el('sessionSummary').textContent=text}
+function setStatus(text){el('status').textContent=text;const bar=el('statusBar');const isError=text.toLowerCase().includes('error')||text.toLowerCase().includes('failed')||text.toLowerCase().includes('disconnected');bar.classList.toggle('show',isError)}
+function setSummary(text){}
 function open(id){el(id).classList.add('open')}
 function close(id){el(id).classList.remove('open')}
 function closeMenus(){close('threadsMenu');close('chatMenu')}
@@ -228,13 +229,13 @@ function defaultSandboxValue(){const preferred=state.sandboxPolicies.find((polic
 function setDefaultSelectedRuntime(thread){const runtime=thread?.runtime||{};const runtimeSandbox=typeof runtime.sandboxPolicy==='string'?runtime.sandboxPolicy:(runtime.sandboxPolicy&&typeof runtime.sandboxPolicy==='object'&&typeof runtime.sandboxPolicy.type==='string'?runtime.sandboxPolicy.type:'');state.selectedModel=runtime.model||state.models[0]?.slug||'';state.selectedApproval=runtime.approvalPolicy||(state.approvalPolicies.includes('on-request')?'on-request':(state.approvalPolicies[0]||''));state.selectedSandbox=runtimeSandbox||defaultSandboxValue()}
 function toggleThreadInfo(){const info=el('threadInfoBox');const button=el('toggleThreadInfoBtn');const expanded=button.getAttribute('aria-expanded')==='true';info.classList.toggle('hide',expanded);button.setAttribute('aria-expanded',expanded?'false':'true');button.textContent=expanded?'Show':'Hide'}
 async function getJson(url,options={}){const response=await fetch(url,{credentials:'include',headers:{'content-type':'application/json'},...options});const text=await response.text();let payload;try{payload=JSON.parse(text)}catch{payload=text}if(!response.ok)throw new Error(typeof payload==='string'?payload:JSON.stringify(payload,null,2));return payload}
-function setRelayState(kind,label){const pill=el('relayPill');pill.classList.toggle('connected',kind==='connected');el('relayLabel').textContent=label||(kind==='connected'?'Connected':'Disconnected')}
+function setRelayState(kind,label){const pill=el('relayPill');pill.classList.toggle('connected',kind==='connected');el('relayLabel').textContent=label||(kind==='connected'?'Online':'Offline')}
 function socketOpen(){return Boolean(state.socket&&state.socket.readyState===WebSocket.OPEN)}
 function renderSelects(){for(const select of [el('modelSelect'),el('modelInput')]){const current=select.value;select.innerHTML='';for(const model of state.models){const option=document.createElement('option');option.value=model.slug;option.textContent=model.displayName||model.slug;select.appendChild(option)}if(current&&state.models.some((model)=>model.slug===current))select.value=current}for(const select of [el('approvalInput'),el('approvalSelect')]){select.innerHTML='';for(const value of state.approvalPolicies){const option=document.createElement('option');option.value=value;option.textContent=value;select.appendChild(option)}}for(const select of [el('sandboxInput'),el('sandboxSelect')]){select.innerHTML='';for(const policy of state.sandboxPolicies){const option=document.createElement('option');option.value=policy.value;option.textContent=policy.label;select.appendChild(option)}}}
 async function loadOptions(){const result=await getJson('/api/options');state.models=Array.isArray(result.models)?result.models:[];state.approvalPolicies=Array.isArray(result.approvalPolicies)?result.approvalPolicies:[];state.sandboxPolicies=Array.isArray(result.sandboxPolicies)?result.sandboxPolicies:[];if(!state.selectedModel&&state.models.length)state.selectedModel=state.models[0].slug;if(!state.selectedApproval&&state.approvalPolicies.includes('on-request'))state.selectedApproval='on-request';if(!state.selectedSandbox&&state.sandboxPolicies.some((policy)=>policy.value==='readOnly'))state.selectedSandbox='readOnly';renderSelects();if(state.selectedModel)for(const id of ['modelSelect','modelInput'])el(id).value=state.selectedModel;if(state.selectedApproval)for(const id of ['approvalInput','approvalSelect'])el(id).value=state.selectedApproval;if(state.selectedSandbox)for(const id of ['sandboxInput','sandboxSelect'])el(id).value=state.selectedSandbox}
-function renderThreads(){const list=el('threadList');list.innerHTML='';if(!state.threads.length){el('emptyThreads').classList.remove('hide');return}el('emptyThreads').classList.add('hide');for(const thread of state.threads){const button=document.createElement('button');button.className=`thread${thread.id===state.threadId?' active':''}`;button.type='button';button.onclick=()=>loadThread(thread.id);button.innerHTML=`<div class="name">${thread.name||'Untitled thread'}</div>`;list.appendChild(button)}}
+function renderThreads(){const list=el('threadList');list.innerHTML='';if(!state.threads.length){el('emptyThreads').classList.remove('hide');return}el('emptyThreads').classList.add('hide');for(const thread of state.threads){const button=document.createElement('button');button.className=`thread${thread.id===state.threadId?' active':''}`;button.type='button';button.onclick=()=>loadThread(thread.id);const name=thread.name||'Untitled thread';const initial=name.charAt(0).toUpperCase();button.innerHTML=`<div class="avatar">${initial}</div><div class="threadContent"><div class="name">${name}</div><div class="preview">Codex thread</div></div>`;list.appendChild(button)}}
 function applyThreadSettings(thread){const runtime=thread?.runtime||{};const runtimeModel=runtime.model||'';const runtimeApproval=runtime.approvalPolicy||'';const runtimeSandbox=typeof runtime.sandboxPolicy==='string'?runtime.sandboxPolicy:(runtime.sandboxPolicy&&typeof runtime.sandboxPolicy==='object'&&typeof runtime.sandboxPolicy.type==='string'?runtime.sandboxPolicy.type:'');if(state.selectedModel&&state.models.some((entry)=>entry.slug===state.selectedModel))el('modelSelect').value=state.selectedModel;if(state.selectedApproval&&state.approvalPolicies.includes(state.selectedApproval))el('approvalSelect').value=state.selectedApproval;if(state.selectedSandbox&&state.sandboxPolicies.some((entry)=>entry.value===state.selectedSandbox))el('sandboxSelect').value=state.selectedSandbox;el('cwdChip').textContent=runtime.cwd||thread?.cwd||'Unknown';el('approvalChip').textContent=runtimeApproval||'Unknown';el('sandboxChip').textContent=runtimeSandbox||sandboxLabel(runtime.sandboxPolicy);el('modelChip').textContent=runtimeModel||'Unknown';el('runtimeInfo').value=`Future turns use model=${state.selectedModel||runtimeModel||'default'}, approval=${state.selectedApproval||runtimeApproval||'default'}, sandbox=${state.selectedSandbox||runtimeSandbox||'default'}.`}
-function updateThreadMeta(){setDefaultSelectedRuntime(state.thread);loadSavedRuntimeSettings();el('chatTitle').textContent=state.thread?.name||'Conversation';el('chatSubtitle').textContent=state.thread?.preview||state.thread?.runtime?.cwd||'Continue the selected Codex thread.';el('threadInfoBox').textContent=state.thread?JSON.stringify(state.thread,null,2):'No thread loaded yet.';applyThreadSettings(state.thread);renderThreads()}
+function updateThreadMeta(){setDefaultSelectedRuntime(state.thread);loadSavedRuntimeSettings();const name=state.thread?.name||'Conversation';el('chatTitle').textContent=name;el('chatAvatar').textContent=name.charAt(0).toUpperCase();el('chatSubtitle').textContent=state.thread?.preview||state.thread?.runtime?.cwd||'';el('threadInfoBox').textContent=state.thread?JSON.stringify(state.thread,null,2):'No thread loaded yet.';applyThreadSettings(state.thread);renderThreads()}
 function setPreviewExpanded(expanded){el('chatSubtitle').classList.toggle('hide',!expanded);el('threadHeaderBtn').setAttribute('aria-expanded',expanded?'true':'false')}
 function setTranscriptEmpty(message){el('transcript').innerHTML=`<div class="transcriptEmpty" id="transcriptEmpty">${message}</div>`;updateScrollButton()}
 function ensureSegmentsRoot(item){let root=item.querySelector('.segments');if(!root){root=document.createElement('div');root.className='segments';item.appendChild(root)}return root}
@@ -247,13 +248,13 @@ function flattenParts(content){if(!Array.isArray(content))return'';return conten
 function messagesFromThread(thread){const turns=Array.isArray(thread?.turns)?thread.turns:[];const out=[];for(const turn of turns){const items=Array.isArray(turn?.items)?turn.items:[];for(const item of items){if(item?.type==='userMessage'){const text=flattenParts(item.content);if(text)out.push({role:'user',text})}else if(item?.type==='agentMessage'){const text=typeof item.text==='string'?item.text:flattenParts(item.content);if(text)out.push({role:'assistant',text})}}}return out}
 function scrollTranscriptToBottom(){const transcript=el('transcript');transcript.scrollTop=transcript.scrollHeight;updateScrollButton()}
 function updateScrollButton(){const transcript=el('transcript');const button=el('scrollBottomBtn');const nearBottom=transcript.scrollHeight-transcript.scrollTop-transcript.clientHeight<24;button.classList.toggle('show',!nearBottom&&transcript.scrollHeight>transcript.clientHeight+24)}
-async function refreshSession(){try{const result=await getJson('/api/session');state.sessionId=result.sessionId||'';el('sessionBox').textContent=JSON.stringify(result,null,2);setSummary(result.authenticated?`Authenticated session ${result.sessionId}`:'Not authenticated');const id=remembered();if(id&&!state.threadId)el('threadLine').textContent=`remembered threadId: ${id}`}catch(error){el('sessionBox').textContent=String(error);setSummary('Session check failed')}}
+async function refreshSession(){try{const result=await getJson('/api/session');state.sessionId=result.sessionId||'';el('sessionBox').textContent=JSON.stringify(result,null,2)}catch(error){el('sessionBox').textContent=String(error)}}
 async function startPairing(){try{const result=await getJson('/api/pairing/start',{method:'POST'});el('pairingBox').textContent=JSON.stringify(result,null,2);setStatus('Fresh pairing created.')}catch(error){el('pairingBox').textContent=String(error);setStatus(`Pairing error: ${error.message||String(error)}`)}}
 async function loadThreads(){try{const result=await getJson('/api/thread/list',{method:'POST',body:'{}'});state.threads=Array.isArray(result.data)?result.data:[];renderThreads();const id=remembered();if(id&&state.threads.some((thread)=>thread.id===id)){state.threadId=id;state.thread=state.threads.find((thread)=>thread.id===id)||null;updateThreadMeta();setStatus('Remembered thread selected.')}else setStatus(`Loaded ${state.threads.length} thread${state.threads.length===1?'':'s'}.`)}catch(error){setStatus(error.message||String(error))}}
 async function logout(){await getJson('/api/logout',{method:'POST',body:'{}'});if(state.socket)state.socket.close();clearRemembered();state.sessionId='';state.threadId='';state.thread=null;state.assistant=null;state.threads=[];resetTranscript();updateThreadMeta();renderThreads();setStatus('Logged out.');await refreshSession()}
 async function revokeCurrentSession(){if(!window.confirm('Revoke this session?\n\nThis logs out only this current device/browser session. You will need to pair again on this device.'))return;await getJson('/api/session/revoke-current',{method:'POST',body:'{}'});if(state.socket)state.socket.close();clearRemembered();state.sessionId='';state.threadId='';state.thread=null;state.assistant=null;state.threads=[];resetTranscript();updateThreadMeta();renderThreads();setStatus('Current session revoked.');await refreshSession()}
 function wsSend(payload){if(!socketOpen())throw new Error('Relay socket is not connected');state.socket.send(JSON.stringify(payload))}
-function connectRelay(){if(socketOpen()){setStatus('Relay socket already connected.');setRelayState('connected','Authenticated');return Promise.resolve()}if(state.socket&&state.socket.readyState===WebSocket.CONNECTING&&state.socketPromise){return state.socketPromise}const proto=location.protocol==='https:'?'wss:':'ws:';state.socket=new WebSocket(`${proto}//${location.host}/ws`);setStatus('Connecting relay socket...');setRelayState('connecting','Connecting');state.socketPromise=new Promise((resolve,reject)=>{state.socket.onopen=()=>{setStatus('Relay socket connected.');setRelayState('connected','Connected');el('connectBtn').textContent='Relay Connected';resolve()};state.socket.onclose=()=>{state.socketPromise=null;setStatus('Relay socket disconnected.');setRelayState('disconnected','Disconnected');el('connectBtn').textContent='Connect Relay'};state.socket.onerror=()=>{state.socketPromise=null;setStatus('Relay socket error.');setRelayState('disconnected','Error');el('connectBtn').textContent='Connect Relay';reject(new Error('Relay socket error'))};state.socket.onmessage=(event)=>{const msg=JSON.parse(event.data);if(msg.type==='session'){state.sessionId=msg.sessionId||'';setStatus('Authenticated relay session ready.');setRelayState('connected','Authenticated');setSummary(`Authenticated session ${msg.sessionId}`);return}if(msg.type==='threads'){state.threads=Array.isArray(msg.data)?msg.data:[];renderThreads();return}if(msg.type==='threadLoaded'){state.threadId=msg.thread?.id||state.threadId;remember(state.threadId);state.thread=state.threads.find((thread)=>thread.id===state.threadId)||msg.thread||state.thread;if(msg.thread&&state.thread)state.thread={...state.thread,...msg.thread};updateThreadMeta();resetTranscript();const messages=Array.isArray(msg.messages)&&msg.messages.length?msg.messages:messagesFromThread(state.thread||msg.thread||{});if(messages.length){for(const entry of messages)appendMessage(entry.role,entry.text,entry.segments)}else setTranscriptEmpty('This thread loaded, but no conversation messages were extracted from the current payload. Refresh the conversation after the next turn.');state.assistant=null;setStatus('Thread loaded.');showScreen('chat');closeMenus();close('threadModal');return}if(msg.type==='turnStarted'){state.assistant=appendMessage('assistant','');setStatus('Waiting for Codex reply...');return}if(msg.type==='assistantDelta'){if(!state.assistant)state.assistant=appendMessage('assistant','');updateMessage(state.assistant,(state.assistant.dataset.pendingText||'')+(msg.delta||''),[{type:'text',text:(state.assistant.dataset.pendingText||'')+(msg.delta||'')}]);state.assistant.dataset.pendingText=(state.assistant.dataset.pendingText||'')+(msg.delta||'');return}if(msg.type==='assistantMessage'){if(state.assistant){updateMessage(state.assistant,msg.message?.text||'',msg.message?.segments||[{type:'text',text:msg.message?.text||''}]);delete state.assistant.dataset.pendingText}else{state.assistant=appendMessage('assistant',msg.message?.text||'',msg.message?.segments)}return}if(msg.type==='turnCompleted'){state.assistant=null;setStatus('Turn completed.');return}if(msg.type==='error')setStatus(`Error: ${msg.message}`)}});return state.socketPromise}
+function connectRelay(){if(socketOpen()){setRelayState('connected','Online');return Promise.resolve()}if(state.socket&&state.socket.readyState===WebSocket.CONNECTING&&state.socketPromise){return state.socketPromise}const proto=location.protocol==='https:'?'wss:':'ws:';state.socket=new WebSocket(`${proto}//${location.host}/ws`);setRelayState('connecting','...');state.socketPromise=new Promise((resolve,reject)=>{state.socket.onopen=()=>{setStatus('Connected.');setRelayState('connected','Online');resolve()};state.socket.onclose=()=>{state.socketPromise=null;setStatus('Relay disconnected.');setRelayState('disconnected','Offline')};state.socket.onerror=()=>{state.socketPromise=null;setStatus('Relay error.');setRelayState('disconnected','Error');reject(new Error('Relay socket error'))};state.socket.onmessage=(event)=>{const msg=JSON.parse(event.data);if(msg.type==='session'){state.sessionId=msg.sessionId||'';setRelayState('connected','Online');return}if(msg.type==='threads'){state.threads=Array.isArray(msg.data)?msg.data:[];renderThreads();return}if(msg.type==='threadLoaded'){state.threadId=msg.thread?.id||state.threadId;remember(state.threadId);state.thread=state.threads.find((thread)=>thread.id===state.threadId)||msg.thread||state.thread;if(msg.thread&&state.thread)state.thread={...state.thread,...msg.thread};updateThreadMeta();resetTranscript();const messages=Array.isArray(msg.messages)&&msg.messages.length?msg.messages:messagesFromThread(state.thread||msg.thread||{});if(messages.length){for(const entry of messages)appendMessage(entry.role,entry.text,entry.segments)}else setTranscriptEmpty('Thread loaded but no messages extracted yet.');state.assistant=null;showScreen('chat');closeMenus();close('threadModal');return}if(msg.type==='turnStarted'){state.assistant=appendMessage('assistant','');return}if(msg.type==='assistantDelta'){if(!state.assistant)state.assistant=appendMessage('assistant','');updateMessage(state.assistant,(state.assistant.dataset.pendingText||'')+(msg.delta||''),[{type:'text',text:(state.assistant.dataset.pendingText||'')+(msg.delta||'')}]);state.assistant.dataset.pendingText=(state.assistant.dataset.pendingText||'')+(msg.delta||'');return}if(msg.type==='assistantMessage'){if(state.assistant){updateMessage(state.assistant,msg.message?.text||'',msg.message?.segments||[{type:'text',text:msg.message?.text||''}]);delete state.assistant.dataset.pendingText}else{state.assistant=appendMessage('assistant',msg.message?.text||'',msg.message?.segments)}return}if(msg.type==='turnCompleted'){state.assistant=null;return}if(msg.type==='error')setStatus(`Error: ${msg.message}`)}});return state.socketPromise}
 function loadThread(id){if(!id){setStatus('Select a thread first.');return}state.threadId=id;state.thread=state.threads.find((thread)=>thread.id===id)||null;updateThreadMeta();try{wsSend({type:'loadThread',threadId:id})}catch(error){setStatus(error.message||String(error))}}
 function sandboxPayload(value){const entry=state.sandboxPolicies.find((policy)=>policy.value===value);return entry?entry.payload:null}
 function openNewThreadFlow(){el('titleInput').value='';el('cwdInput').value=state.thread?.runtime?.cwd||state.thread?.cwd||'';if(state.selectedModel&&state.models.some((model)=>model.slug===state.selectedModel))el('modelInput').value=state.selectedModel;if(state.selectedApproval&&state.approvalPolicies.includes(state.selectedApproval))el('approvalInput').value=state.selectedApproval;if(state.selectedSandbox&&state.sandboxPolicies.some((entry)=>entry.value===state.selectedSandbox))el('sandboxInput').value=state.selectedSandbox;open('threadModal')}
@@ -277,9 +278,8 @@ el('chatRevokeBtn').onclick=()=>void revokeCurrentSession();
 el('logoutBtn').onclick=()=>void logout();
 el('chatLogoutBtn').onclick=()=>void logout();
 el('operatorBtn').onclick=()=>window.open('/operator','_blank','noopener,noreferrer');
-el('connectBtn').onclick=()=>void connectRelay();
-el('refreshThreadsBtn').onclick=()=>void loadThreads();
-el('newThreadBtn').onclick=openNewThreadFlow;
+el('refreshThreadsMenuBtn').onclick=()=>void loadThreads();
+el('fabNewThread').onclick=openNewThreadFlow;
 el('newThreadMenuBtn').onclick=openNewThreadFlow;
 el('createThreadBtn').onclick=createThread;
 el('sendBtn').onclick=()=>void sendPrompt();
@@ -295,9 +295,7 @@ el('modelSelect').onchange=(event)=>{state.selectedModel=event.target.value;el('
 el('approvalSelect').onchange=(event)=>{state.selectedApproval=event.target.value;el('approvalChip').textContent=state.selectedApproval||'Unknown'};
 el('sandboxSelect').onchange=(event)=>{state.selectedSandbox=event.target.value;el('sandboxChip').textContent=state.selectedSandbox||'Unknown'};
 window.addEventListener('resize',()=>showScreen(state.threadId?'chat':'threads'));
-setRelayState('disconnected','Disconnected');
-setStatus('Relay socket not connected.');
-setSummary('Session not checked yet.');
+setRelayState('disconnected','Offline');
 setPreviewExpanded(false);
 el('threadInfoBox').classList.add('hide');
 el('toggleThreadInfoBtn').setAttribute('aria-expanded','false');
@@ -308,6 +306,7 @@ renderThreads();
 showScreen('threads');
 void loadOptions();
 void refreshSession();
+void connectRelay();
 </script>
 </body>
 </html>
