@@ -15,7 +15,7 @@
     "lint": "tsc -p . --noEmit",
     "start": "node out/relay/server.js",
     "start:relay": "node out/relay/server.js",
-    "test": "npm.cmd run build"
+    "test": "npm.cmd run build && node --test .\\tests\\*.test.js"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

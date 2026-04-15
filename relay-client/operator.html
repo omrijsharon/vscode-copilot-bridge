@@ -41,6 +41,15 @@
         font: inherit;
         cursor: pointer;
       }
+      input[type="password"] {
+        border: 1px solid var(--line);
+        background: #fffdf9;
+        color: var(--ink);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font: inherit;
+        min-width: 260px;
+      }
       img {
         max-width: 100%;
         height: auto;
@@ -167,12 +176,27 @@
         </p>
       </div>
 
+      <div id="authCard" class="card">
+        <h2>Operator Access</h2>
+        <p id="authStatus" class="muted">Checking operator access...</p>
+        <div id="loginRow" class="row" hidden>
+          <input id="operatorSecretInput" type="password" placeholder="Enter operator secret" />
+          <button id="operatorLoginBtn">Login</button>
+        </div>
+        <div id="logoutRow" class="row" hidden>
+          <button id="operatorLogoutBtn">Logout Operator</button>
+        </div>
+      </div>
+
+      <div id="operatorContent" hidden>
+
       <div class="card">
         <h2>Pairing</h2>
         <div class="row">
           <button id="createPairingBtn">Create Pairing</button>
           <button id="copyPairUrlBtn">Copy Pair URL</button>
           <button id="openPairUrlBtn">Open Pair URL</button>
+          <button id="refreshPairingsBtn">Refresh Pairings</button>
         </div>
         <div class="pairing-grid">
           <div class="qrbox">
@@ -185,6 +209,7 @@
               Scan the QR code from the phone or open the pair URL directly on the phone. The QR is generated locally
               by the relay and a fresh pairing is created automatically when this page loads.
             </div>
+            <pre id="pairingsBox">No pairing summaries loaded yet.</pre>
           </div>
         </div>
       </div>
@@ -238,24 +263,25 @@
 
       <div class="card">
         <h2>Restart Guidance</h2>
-        <pre>1. Start Codex app-server:
-& "C:\Users\tamipinhasi\.vscode\extensions\openai.chatgpt-26.304.20706-win32-x64\bin\windows-x86_64\codex.exe" app-server --listen ws://127.0.0.1:4500
+        <pre>1. Start the local stack with the launcher:
+powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
+  -PublicBaseUrl "https://YOUR_PUBLIC_HOST" `
+  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE" `
+  -OperatorSecret "PUT_A_SEPARATE_OPERATOR_SECRET_HERE"
 
-2. Start relay:
-.\scripts\start-codex-relay.ps1
+2. Operator page:
+https://YOUR_PUBLIC_HOST/operator
 
-3. Operator page:
-http://127.0.0.1:8787/operator
-
-4. Remote client:
-http://127.0.0.1:8787/</pre>
+3. Remote client:
+https://YOUR_PUBLIC_HOST/</pre>
       </div>
 
       <div class="card">
         <h2>One-Click Start</h2>
         <pre>powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
-  -PublicBaseUrl "https://codex.flying-agents.com" `
-  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE"</pre>
+  -PublicBaseUrl "https://YOUR_PUBLIC_HOST" `
+  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE" `
+  -OperatorSecret "PUT_A_SEPARATE_OPERATOR_SECRET_HERE"</pre>
       </div>
 
       <div class="card">
@@ -271,10 +297,12 @@ ws://127.0.0.1:4500
 CODEX_RELAY_HOST=0.0.0.0
 CODEX_RELAY_BASE_URL=https://YOUR_PUBLIC_HOST
 CODEX_RELAY_SESSION_SECRET=your-random-secret
+CODEX_RELAY_OPERATOR_SECRET=your-separate-operator-secret
 
 4. Use HTTPS/WSS for the phone path.
 
 5. Do not expose raw app-server directly.</pre>
+      </div>
       </div>
     </div>
 
@@ -282,6 +310,7 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
       const el = (id) => document.getElementById(id);
       let latestPairUrl = "";
       let latestState = null;
+      let operatorAuth = { mode: "local-only", authenticated: false };
 
       async function getJson(url, options = {}) {
         const response = await fetch(url, {
@@ -292,9 +321,63 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
         const text = await response.text();
         const payload = text ? JSON.parse(text) : {};
         if (!response.ok) {
-          throw new Error(JSON.stringify(payload, null, 2));
+          const error = new Error(JSON.stringify(payload, null, 2));
+          error.status = response.status;
+          error.payload = payload;
+          throw error;
         }
         return payload;
+      }
+
+      function setOperatorUi() {
+        el("authStatus").textContent = operatorAuth.authenticated
+          ? `Operator access granted (${operatorAuth.mode}).`
+          : operatorAuth.mode === "secret"
+            ? "Operator secret required."
+            : "Operator access is local-only. Open this page from the relay host.";
+        el("loginRow").hidden = !(operatorAuth.mode === "secret" && !operatorAuth.authenticated);
+        el("logoutRow").hidden = !operatorAuth.authenticated;
+        el("operatorContent").hidden = !operatorAuth.authenticated;
+      }
+
+      async function refreshOperatorAuth() {
+        operatorAuth = await getJson("/api/operator/auth-state");
+        setOperatorUi();
+      }
+
+      async function operatorLogin() {
+        try {
+          const secret = el("operatorSecretInput").value;
+          const result = await getJson("/api/operator/login", {
+            method: "POST",
+            body: JSON.stringify({ secret })
+          });
+          operatorAuth = result;
+          el("operatorSecretInput").value = "";
+          setOperatorUi();
+          await refreshState();
+          await refreshPairings();
+          await refreshHealth();
+          await createPairing();
+        } catch (error) {
+          el("authStatus").textContent = `Operator login failed: ${error.message}`;
+        }
+      }
+
+      async function operatorLogout() {
+        await getJson("/api/operator/logout", { method: "POST" });
+        operatorAuth = await getJson("/api/operator/auth-state");
+        setOperatorUi();
+        latestPairUrl = "";
+        latestState = null;
+        el("pairingBox").textContent = "Operator logged out.";
+        el("pairingsBox").textContent = "No pairing summaries loaded yet.";
+        renderQrSvg("");
+        el("stateBox").textContent = "No state loaded yet.";
+        el("healthBox").textContent = "No health loaded yet.";
+        el("sessionsList").innerHTML = '<div class="hint">No active sessions.</div>';
+        el("alertsList").innerHTML = '<div class="hint">No alerts.</div>';
+        el("eventsList").innerHTML = '<div class="hint">No events recorded yet.</div>';
       }
 
       function renderQrSvg(svg) {
@@ -312,10 +395,16 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
       }
 
       async function createPairing() {
-        const result = await getJson("/api/pairing/start", { method: "POST" });
-        latestPairUrl = result.pairUrl || "";
-        el("pairingBox").textContent = JSON.stringify(result, null, 2);
-        renderQrSvg(result.qrSvg || "");
+        try {
+          const result = await getJson("/api/pairing/start", { method: "POST" });
+          latestPairUrl = result.pairUrl || "";
+          el("pairingBox").textContent = JSON.stringify(result, null, 2);
+          renderQrSvg(result.qrSvg || "");
+        } catch (error) {
+          latestPairUrl = "";
+          el("pairingBox").textContent = `Failed to create pairing:\n${error.message}`;
+          renderQrSvg("");
+        }
       }
 
       async function copyPairUrl() {
@@ -335,10 +424,25 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
       async function refreshState() {
         const result = await getJson("/api/operator/state");
         latestState = result;
-        el("stateBox").textContent = JSON.stringify(result, null, 2);
+        el("stateBox").textContent = JSON.stringify(
+          {
+            relay: result.relay,
+            sessionsCount: Array.isArray(result.sessions) ? result.sessions.length : 0,
+            alertsCount: Array.isArray(result.alerts) ? result.alerts.length : 0,
+            logsCount: Array.isArray(result.logs) ? result.logs.length : 0,
+            guidance: result.guidance
+          },
+          null,
+          2
+        );
         renderSessions(result.sessions || []);
         renderAlerts(result.alerts || []);
         renderEvents(result.logs || []);
+      }
+
+      async function refreshPairings() {
+        const result = await getJson("/api/operator/pairings");
+        el("pairingsBox").textContent = JSON.stringify(result, null, 2);
       }
 
       function renderSessions(sessions) {
@@ -477,16 +581,31 @@ CODEX_RELAY_SESSION_SECRET=your-random-secret
       el("createPairingBtn").onclick = () => void createPairing();
       el("copyPairUrlBtn").onclick = () => void copyPairUrl();
       el("openPairUrlBtn").onclick = () => void openPairUrl();
+      el("refreshPairingsBtn").onclick = () => void refreshPairings();
       el("refreshStateBtn").onclick = () => void refreshState();
       el("refreshSessionsBtn").onclick = () => void refreshState();
       el("refreshAlertsBtn").onclick = () => void refreshState();
       el("refreshEventsBtn").onclick = () => void refreshState();
       el("revokeAllSessionsBtn").onclick = () => void revokeAllSessions();
       el("refreshHealthBtn").onclick = () => void refreshHealth();
+      el("operatorLoginBtn").onclick = () => void operatorLogin();
+      el("operatorLogoutBtn").onclick = () => void operatorLogout();
+      el("operatorSecretInput").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          void operatorLogin();
+        }
+      });
       renderQrSvg("");
-      void createPairing();
-      void refreshState();
-      void refreshHealth();
+      void (async () => {
+        await refreshOperatorAuth();
+        if (operatorAuth.authenticated) {
+          await refreshState();
+          await refreshPairings();
+          await refreshHealth();
+          await createPairing();
+        }
+      })();
     </script>
   </body>
 </html>

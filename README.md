@@ -40,7 +40,9 @@ The product direction is:
 - `CODEX_RELAY_BASE_URL` default: `http://127.0.0.1:8787`
 - `CODEX_APP_SERVER_URL` default: `ws://127.0.0.1:4500`
 - `CODEX_RELAY_SESSION_SECRET` default: generated at startup if unset
-- `CODEX_RELAY_PAIRING_TTL_MS` default: `300000`
+- `CODEX_RELAY_OPERATOR_SECRET` default: unset; when unset, pairing/operator APIs are local-only
+- `CODEX_RELAY_PAIRING_TTL_MS` default: `60000`
+- `CODEX_RELAY_SESSION_TTL_MS` default: `2592000000`
 - `CODEX_RELAY_PROMPT_MAX_CHARS` default: `10000`
 - `CODEX_RELAY_SESSION_REQ_PER_MIN` default: `30`
 - `CODEX_RELAY_PAIRING_REQ_PER_HOUR` default: `20`
@@ -61,10 +63,14 @@ Note:
   - [docs/CODEX_REMOTE_RELAY.md](docs/CODEX_REMOTE_RELAY.md)
 - remote access setup:
   - [docs/REMOTE_ACCESS_SETUP.md](docs/REMOTE_ACCESS_SETUP.md)
+- Cloudflare Tunnel setup:
+  - [docs/CLOUDFLARE_TUNNEL_SETUP.md](docs/CLOUDFLARE_TUNNEL_SETUP.md)
 - relay verification matrix:
   - [docs/REMOTE_RELAY_VERIFICATION.md](docs/REMOTE_RELAY_VERIFICATION.md)
 - implementation plan:
   - [codex-app-server_plan.md](codex-app-server_plan.md)
+- private local-use docs:
+  - keep them under `docs-private/` (gitignored)
 
 ## Current Status
 
@@ -91,8 +97,9 @@ For the Cloudflare Tunnel path, use:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
-  -PublicBaseUrl "https://codex.flying-agents.com" `
-  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE"
+  -PublicBaseUrl "https://YOUR_PUBLIC_HOST" `
+  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE" `
+  -OperatorSecret "PUT_A_SEPARATE_OPERATOR_SECRET_HERE"
 ```
 
 This starts:
@@ -104,3 +111,19 @@ Behavior:
 - reuses healthy existing app-server / relay / tunnel processes when possible
 - stops conflicting listeners if needed
 - `-ForceRestart` forces a full restart of the stack
+
+## Public Repo Notes
+
+Before publishing the repo, keep these boundaries clear:
+
+- Public docs should use placeholders such as `https://YOUR_PUBLIC_HOST`
+- Private deployment notes should live only under `docs-private/`
+- `diagnostics/` is local-only debug output and should stay empty or ignored in any public tree
+- Do not commit diagnostics, local session logs, or generated artifacts
+- Do not publish your real domain, tunnel token, session secret, or local operator workflow unless you intend to expose them
+
+Important:
+- pairing and operator APIs are now local-only by default
+- if you set `CODEX_RELAY_OPERATOR_SECRET`, pairing and operator APIs require an operator login cookie
+- public-host deployment without `CODEX_RELAY_OPERATOR_SECRET` is not supported
+- sanitize docs separately from deployment-specific secrets and domains

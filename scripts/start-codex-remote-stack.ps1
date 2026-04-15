@@ -4,6 +4,7 @@ param(
   [string]$RelayPort = "8788",
   [string]$AppServerUrl = "ws://127.0.0.1:4500",
   [string]$SessionSecret = "",
+  [string]$OperatorSecret = "",
   [switch]$ForceRestart
 )
 
@@ -29,6 +30,15 @@ function Resolve-CodexExe() {
   return $null
 }
 
+function Test-IsLocalPublicBaseUrl([string]$Url) {
+  try {
+    $uri = [Uri]$Url
+    return $uri.Host -in @("localhost", "127.0.0.1", "::1")
+  } catch {
+    return $false
+  }
+}
+
 $codexExe = Resolve-CodexExe
 
 if ([string]::IsNullOrWhiteSpace($PublicBaseUrl)) {
@@ -39,12 +49,20 @@ if ([string]::IsNullOrWhiteSpace($SessionSecret)) {
   $SessionSecret = $env:CODEX_RELAY_SESSION_SECRET
 }
 
+if ([string]::IsNullOrWhiteSpace($OperatorSecret)) {
+  $OperatorSecret = $env:CODEX_RELAY_OPERATOR_SECRET
+}
+
 if ([string]::IsNullOrWhiteSpace($PublicBaseUrl)) {
   throw "PublicBaseUrl is required. Pass -PublicBaseUrl or set CODEX_RELAY_BASE_URL."
 }
 
 if ([string]::IsNullOrWhiteSpace($SessionSecret)) {
   throw "SessionSecret is required. Pass -SessionSecret or set CODEX_RELAY_SESSION_SECRET."
+}
+
+if (-not (Test-IsLocalPublicBaseUrl $PublicBaseUrl) -and [string]::IsNullOrWhiteSpace($OperatorSecret)) {
+  throw "OperatorSecret is required when PublicBaseUrl is not localhost/127.0.0.1."
 }
 
 if (-not (Test-Path $codexExe)) {
@@ -149,6 +167,7 @@ Set-Location '$repoRoot'
 `$env:CODEX_RELAY_BASE_URL='$PublicBaseUrl'
 `$env:CODEX_APP_SERVER_URL='$AppServerUrl'
 `$env:CODEX_RELAY_SESSION_SECRET='$SessionSecret'
+`$env:CODEX_RELAY_OPERATOR_SECRET='$OperatorSecret'
 npm.cmd run build
 node .\out\relay\server.js
 "@

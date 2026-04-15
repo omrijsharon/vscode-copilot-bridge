@@ -4,6 +4,7 @@ export interface RelayConfig {
   publicBaseUrl: string;
   appServerUrl: string;
   sessionSecret: string;
+  operatorSecret: string;
   pairingTtlMs: number;
   sessionTtlMs: number;
   promptMaxChars: number;
@@ -17,6 +18,14 @@ export interface PairingRecord {
   createdAt: number;
   expiresAt: number;
   usedAt?: number;
+}
+
+export interface PairingSummary {
+  pairingId: string;
+  createdAt: number;
+  expiresAt: number;
+  usedAt?: number;
+  status: "active" | "used" | "expired";
 }
 
 export interface RelaySession {

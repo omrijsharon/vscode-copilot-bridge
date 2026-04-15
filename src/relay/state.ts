@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { PairingRecord, RelaySession } from "./types";
+import { PairingRecord, PairingSummary, RelaySession } from "./types";
 
 export class PairingStore {
   private readonly pairings = new Map<string, PairingRecord>();
@@ -38,6 +38,19 @@ export class PairingStore {
   list(): PairingRecord[] {
     this.cleanup();
     return Array.from(this.pairings.values()).sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  listSummaries(): PairingSummary[] {
+    const now = Date.now();
+    return Array.from(this.pairings.values())
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((pairing) => ({
+        pairingId: pairing.pairingId,
+        createdAt: pairing.createdAt,
+        expiresAt: pairing.expiresAt,
+        usedAt: pairing.usedAt,
+        status: pairing.usedAt ? "used" : pairing.expiresAt <= now ? "expired" : "active"
+      }));
   }
 }
 

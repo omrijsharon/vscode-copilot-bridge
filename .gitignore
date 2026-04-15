@@ -4,3 +4,5 @@ out/
 *.vsix
 .npm-cache/
 images/
+docs-private/
+diagnostics/

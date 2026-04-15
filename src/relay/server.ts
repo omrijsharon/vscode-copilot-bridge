@@ -8,6 +8,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { AppServerClient } from "./appServerClient";
 import { loadRelayConfig } from "./config";
 import { RelayLogger } from "./logger";
+import { sanitizeOperatorLogs, sanitizeOperatorSessions } from "./operatorView";
 import { FixedWindowRateLimiter } from "./rateLimiter";
 import { PairingStore, SessionStore } from "./state";
 import { ThreadMetadataStore } from "./threadMetadataStore";
@@ -56,6 +57,18 @@ function relayCookieAttributes(baseUrl: string): string {
     .join("; ");
 }
 
+function operatorCookieAttributes(baseUrl: string): string {
+  return relayCookieAttributes(baseUrl);
+}
+
+function operatorCookieValue(secret: string): string {
+  return SessionStore.signSession("operator", secret);
+}
+
+function operatorMode(config: { operatorSecret: string }): "local-only" | "secret" {
+  return config.operatorSecret ? "secret" : "local-only";
+}
+
 function inferOs(userAgent: string): string {
   const ua = userAgent.toLowerCase();
   if (ua.includes("android")) {
@@ -88,6 +101,85 @@ function getClientIp(req: IncomingMessage): string {
   }
 
   return req.socket.remoteAddress ?? "";
+}
+
+function isLoopbackIp(ipAddress: string): boolean {
+  const normalized = ipAddress.trim().toLowerCase();
+  return (
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized === "::ffff:127.0.0.1" ||
+    normalized.startsWith("127.")
+  );
+}
+
+function isLocalHostname(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+}
+
+function isLocalRequest(req: IncomingMessage): boolean {
+  const directIp = req.socket.remoteAddress ?? "";
+  const hasForwardedHeaders =
+    Boolean(req.headers["cf-connecting-ip"]) || Boolean(req.headers["x-forwarded-for"]);
+  return isLoopbackIp(directIp) && !hasForwardedHeaders;
+}
+
+function sameOriginAllowed(req: IncomingMessage, publicBaseUrl: string): boolean {
+  const expectedOrigin = new URL(publicBaseUrl).origin;
+  const origin = typeof req.headers.origin === "string" ? req.headers.origin.trim() : "";
+  if (origin) {
+    return origin === expectedOrigin;
+  }
+
+  const referer = typeof req.headers.referer === "string" ? req.headers.referer.trim() : "";
+  if (referer) {
+    try {
+      return new URL(referer).origin === expectedOrigin;
+    } catch {
+      return false;
+    }
+  }
+
+  return isLocalRequest(req);
+}
+
+function requireSameOriginPost(req: IncomingMessage, res: ServerResponse, publicBaseUrl: string): boolean {
+  if (sameOriginAllowed(req, publicBaseUrl)) {
+    return true;
+  }
+  sendJson(res, 403, { error: "origin_not_allowed" });
+  return false;
+}
+
+function hasOperatorCookie(req: IncomingMessage, secret: string): boolean {
+  if (!secret) {
+    return false;
+  }
+  const cookies = parseCookies(req);
+  return cookies.codex_relay_operator === operatorCookieValue(secret);
+}
+
+function hasOperatorAccess(req: IncomingMessage, config: { operatorSecret: string }): boolean {
+  if (config.operatorSecret) {
+    return hasOperatorCookie(req, config.operatorSecret);
+  }
+  return isLocalRequest(req);
+}
+
+function requireOperatorAccess(
+  req: IncomingMessage,
+  res: ServerResponse,
+  config: { operatorSecret: string }
+): boolean {
+  if (hasOperatorAccess(req, config)) {
+    return true;
+  }
+  sendJson(res, 401, {
+    error: "operator_auth_required",
+    mode: operatorMode(config)
+  });
+  return false;
 }
 
 async function lookupIpDetails(ipAddress: string): Promise<{
@@ -488,6 +580,12 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
 async function main(): Promise<void> {
   const config = loadRelayConfig();
+  const publicHost = new URL(config.publicBaseUrl).hostname;
+  if (!config.operatorSecret && !isLocalHostname(publicHost)) {
+    throw new Error(
+      "CODEX_RELAY_OPERATOR_SECRET is required when CODEX_RELAY_BASE_URL is not localhost/127.0.0.1"
+    );
+  }
   const pairings = new PairingStore();
   const sessions = new SessionStore();
   const appServer = new AppServerClient(config.appServerUrl);
@@ -859,7 +957,75 @@ async function main(): Promise<void> {
         return;
       }
 
+      if (req.method === "GET" && url.pathname === "/api/operator/auth-state") {
+        sendJson(res, 200, {
+          mode: operatorMode(config),
+          authenticated: hasOperatorAccess(req, config)
+        });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/operator/login") {
+        if (!requireSameOriginPost(req, res, config.publicBaseUrl)) {
+          return;
+        }
+        if (!config.operatorSecret) {
+          if (!isLocalRequest(req)) {
+            sendJson(res, 401, { error: "operator_auth_required", mode: operatorMode(config) });
+            return;
+          }
+          sendJson(res, 200, { ok: true, mode: operatorMode(config), authenticated: true });
+          return;
+        }
+
+        const body = await readBody(req);
+        const parsed = body ? (JSON.parse(body) as { secret?: string }) : {};
+        if ((parsed.secret ?? "").trim() !== config.operatorSecret) {
+          logger.record({
+            ts: new Date().toISOString(),
+            kind: "http",
+            action: "operatorLogin",
+            status: "error",
+            ipAddress: getClientIp(req),
+            message: "invalid operator secret"
+          });
+          sendJson(res, 401, { error: "invalid_operator_secret", mode: operatorMode(config) });
+          return;
+        }
+        res.writeHead(200, {
+          "content-type": "application/json; charset=utf-8",
+          "set-cookie": `codex_relay_operator=${operatorCookieValue(config.operatorSecret)}; ${operatorCookieAttributes(config.publicBaseUrl)}`
+        });
+        res.end(JSON.stringify({ ok: true, mode: operatorMode(config), authenticated: true }, null, 2));
+        logger.record({
+          ts: new Date().toISOString(),
+          kind: "http",
+          action: "operatorLogin",
+          status: "ok",
+          ipAddress: getClientIp(req)
+        });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/operator/logout") {
+        if (!requireSameOriginPost(req, res, config.publicBaseUrl)) {
+          return;
+        }
+        res.writeHead(200, {
+          "content-type": "application/json; charset=utf-8",
+          "set-cookie": `codex_relay_operator=; Max-Age=0; ${operatorCookieAttributes(config.publicBaseUrl)}`
+        });
+        res.end(JSON.stringify({ ok: true }, null, 2));
+        return;
+      }
+
       if (req.method === "POST" && url.pathname === "/api/pairing/start") {
+        if (!requireSameOriginPost(req, res, config.publicBaseUrl)) {
+          return;
+        }
+        if (!requireOperatorAccess(req, res, config)) {
+          return;
+        }
         const rate = pairingRateLimiter.take(getClientIp(req) || "unknown");
         if (!rate.allowed) {
           logger.record({
@@ -1072,15 +1238,16 @@ async function main(): Promise<void> {
       }
 
       if (req.method === "GET" && url.pathname === "/api/operator/state") {
-        const logs = logger.list();
+        if (!requireOperatorAccess(req, res, config)) {
+          return;
+        }
+        const logs = sanitizeOperatorLogs(logger.list());
         sendJson(res, 200, {
-          pairings: pairings.list(),
-          sessions: sessions.list(),
+          sessions: sanitizeOperatorSessions(sessions.list()),
           logs,
           alerts: buildSessionAlerts(logs),
           relay: {
             baseUrl: config.publicBaseUrl,
-            appServerUrl: config.appServerUrl,
             cookieMode: config.publicBaseUrl.startsWith("https://") ? "secure" : "non-secure"
           },
           guidance: {
@@ -1108,7 +1275,23 @@ async function main(): Promise<void> {
         return;
       }
 
+      if (req.method === "GET" && url.pathname === "/api/operator/pairings") {
+        if (!requireOperatorAccess(req, res, config)) {
+          return;
+        }
+        sendJson(res, 200, {
+          pairings: pairings.listSummaries()
+        });
+        return;
+      }
+
       if (req.method === "POST" && url.pathname === "/api/operator/session/revoke") {
+        if (!requireSameOriginPost(req, res, config.publicBaseUrl)) {
+          return;
+        }
+        if (!requireOperatorAccess(req, res, config)) {
+          return;
+        }
         const body = await readBody(req);
         const parsed = body ? (JSON.parse(body) as { sessionId?: string }) : {};
         if (!parsed.sessionId) {
@@ -1128,6 +1311,12 @@ async function main(): Promise<void> {
       }
 
       if (req.method === "POST" && url.pathname === "/api/operator/session/revoke-all") {
+        if (!requireSameOriginPost(req, res, config.publicBaseUrl)) {
+          return;
+        }
+        if (!requireOperatorAccess(req, res, config)) {
+          return;
+        }
         const revokedCount = sessions.deleteAll();
         logger.record({
           ts: new Date().toISOString(),

@@ -47,6 +47,7 @@ Optional but recommended:
 
 ```powershell
 $env:CODEX_RELAY_SESSION_SECRET = "set-a-long-random-secret-here"
+$env:CODEX_RELAY_OPERATOR_SECRET = "set-a-separate-operator-secret-here"
 ```
 
 ## Why `CODEX_RELAY_BASE_URL` Matters
@@ -97,12 +98,16 @@ Requirements:
 - the public/tunneled URL must be stable enough to use in `CODEX_RELAY_BASE_URL`
 - WebSocket support must be enabled through the tunnel
 
+For a step-by-step Cloudflare flow, use:
+- [CLOUDFLARE_TUNNEL_SETUP.md](CLOUDFLARE_TUNNEL_SETUP.md)
+
 ## Local Start Example
 
 Start app-server:
 
 ```powershell
-& "C:\Users\tamipinhasi\.vscode\extensions\openai.chatgpt-26.304.20706-win32-x64\bin\windows-x86_64\codex.exe" app-server --listen ws://127.0.0.1:4500
+# Start the bundled Codex app-server binary for your installed OpenAI ChatGPT VS Code extension.
+# The one-click launcher script auto-detects this path.
 ```
 
 Then start relay with remote-ready config:
@@ -113,6 +118,7 @@ $env:CODEX_RELAY_PORT = "8788"
 $env:CODEX_RELAY_BASE_URL = "https://YOUR_PUBLIC_HOST"
 $env:CODEX_APP_SERVER_URL = "ws://127.0.0.1:4500"
 $env:CODEX_RELAY_SESSION_SECRET = "set-a-long-random-secret-here"
+$env:CODEX_RELAY_OPERATOR_SECRET = "set-a-separate-operator-secret-here"
 node .\out\relay\server.js
 ```
 
@@ -141,6 +147,17 @@ node .\out\relay\server.js
 
 - always prefer HTTPS for remote phone access
 - set an explicit `CODEX_RELAY_SESSION_SECRET`
+- set an explicit `CODEX_RELAY_OPERATOR_SECRET` if the operator page or pairing flow will be used through a public host
+- public-host deployment without `CODEX_RELAY_OPERATOR_SECRET` is not supported
 - keep pairing TTL short
 - do not publish app-server directly
+- pairing and operator APIs are local-only by default unless you configure an operator secret
 - if using a reverse proxy or tunnel, restrict exposure to the relay only
+
+## Public vs Private Docs
+
+Use this file for public/shareable instructions.
+
+For your own deployment-specific notes:
+- keep them under `docs-private/`
+- do not commit real domains, tunnel names, user paths, or secrets into tracked docs
