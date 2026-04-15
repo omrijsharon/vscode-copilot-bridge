@@ -2,11 +2,17 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  maskIpAddress,
   sanitizeOperatorMessage,
-  sanitizeOperatorUserAgent,
   sanitizeOperatorLogs,
-  sanitizeOperatorSessions
+  sanitizeOperatorSessions,
+  toOperatorSessionDetail
 } = require("../out/relay/operatorView.js");
+
+test("maskIpAddress returns stable masked values for operator summaries", () => {
+  assert.equal(maskIpAddress("1.2.3.4"), "1.2.x.x");
+  assert.equal(maskIpAddress("2001:db8:abcd:0012::1"), "2001:db8::x");
+});
 
 test("sanitizeOperatorMessage redacts pairing tokens and relay cookies", () => {
   const input =
@@ -18,37 +24,35 @@ test("sanitizeOperatorMessage redacts pairing tokens and relay cookies", () => {
   assert.equal(output.includes("codex_relay_session=[redacted]"), true);
 });
 
-test("sanitizeOperatorUserAgent truncates long user agents", () => {
-  const longUserAgent = "Mozilla/5.0 ".repeat(20);
-  const output = sanitizeOperatorUserAgent(longUserAgent);
-  assert.ok(output.length <= 120);
-});
-
-test("sanitizeOperatorLogs keeps useful metadata but sanitizes message and userAgent", () => {
+test("sanitizeOperatorLogs exposes only minimal event fields", () => {
   const [entry] = sanitizeOperatorLogs([
     {
       ts: "2026-04-15T00:00:00.000Z",
       kind: "http",
-      action: "pairingStart",
+      action: "pairingConsume",
       status: "ok",
       sessionId: "session-1",
       threadId: "thread-1",
-      ipAddress: "1.2.3.4",
+      maskedIp: "1.2.x.x",
       os: "Android",
-      userAgent: "Mozilla/5.0 ".repeat(20),
       message: "https://host/pair?token=abc123"
     }
   ]);
 
-  assert.equal(entry.sessionId, "session-1");
-  assert.equal(entry.threadId, "thread-1");
-  assert.equal(entry.ipAddress, "1.2.3.4");
-  assert.equal(entry.os, "Android");
-  assert.equal(entry.message.includes("abc123"), false);
-  assert.ok(entry.userAgent.length <= 120);
+  assert.deepEqual(entry, {
+    ts: "2026-04-15T00:00:00.000Z",
+    kind: "http",
+    action: "pairingConsume",
+    status: "ok",
+    sessionId: "session-1",
+    threadId: "thread-1",
+    maskedIp: "1.2.x.x",
+    os: "Android",
+    message: "https://host/pair?token=[redacted]"
+  });
 });
 
-test("sanitizeOperatorSessions truncates userAgent without removing session metadata", () => {
+test("sanitizeOperatorSessions returns masked summaries instead of raw session metadata", () => {
   const [session] = sanitizeOperatorSessions([
     {
       sessionId: "session-1",
@@ -56,18 +60,40 @@ test("sanitizeOperatorSessions truncates userAgent without removing session meta
       createdAt: 1,
       expiresAt: 2,
       ipAddress: "1.2.3.4",
-      userAgent: "Mozilla/5.0 ".repeat(20),
       os: "Android",
-      country: "IL",
-      city: "Tel Aviv",
-      asn: "AS1234",
-      isp: "Example ISP"
+      deviceLabel: "Chrome on Android"
     }
   ]);
 
-  assert.equal(session.sessionId, "session-1");
-  assert.equal(session.pairingId, "pairing-1");
-  assert.equal(session.ipAddress, "1.2.3.4");
-  assert.equal(session.os, "Android");
-  assert.ok(session.userAgent.length <= 120);
+  assert.deepEqual(session, {
+    sessionId: "session-1",
+    pairingId: "pairing-1",
+    createdAt: 1,
+    expiresAt: 2,
+    os: "Android",
+    deviceLabel: "Chrome on Android",
+    maskedIp: "1.2.x.x"
+  });
+});
+
+test("toOperatorSessionDetail keeps full IP only in explicit session detail view", () => {
+  const detail = toOperatorSessionDetail({
+    sessionId: "session-1",
+    pairingId: "pairing-1",
+    createdAt: 1,
+    expiresAt: 2,
+    ipAddress: "1.2.3.4",
+    os: "Android",
+    deviceLabel: "Chrome on Android"
+  });
+
+  assert.deepEqual(detail, {
+    sessionId: "session-1",
+    pairingId: "pairing-1",
+    createdAt: 1,
+    expiresAt: 2,
+    ipAddress: "1.2.3.4",
+    os: "Android",
+    deviceLabel: "Chrome on Android"
+  });
 });

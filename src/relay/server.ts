@@ -8,7 +8,14 @@ import { WebSocketServer, WebSocket } from "ws";
 import { AppServerClient } from "./appServerClient";
 import { loadRelayConfig } from "./config";
 import { RelayLogger } from "./logger";
-import { sanitizeOperatorLogs, sanitizeOperatorSessions } from "./operatorView";
+import {
+  maskIpAddress,
+  sanitizeOperatorAlerts,
+  sanitizeOperatorLogs,
+  sanitizeOperatorSessions,
+  summarizeOperatorState,
+  toOperatorSessionDetail
+} from "./operatorView";
 import { FixedWindowRateLimiter } from "./rateLimiter";
 import { PairingStore, SessionStore } from "./state";
 import { ThreadMetadataStore } from "./threadMetadataStore";
@@ -34,6 +41,140 @@ function sendJson(res: ServerResponse, statusCode: number, payload: unknown): vo
 function sendText(res: ServerResponse, statusCode: number, body: string): void {
   res.writeHead(statusCode, { "content-type": "text/plain; charset=utf-8" });
   res.end(body);
+}
+
+function renderOperatorLoginShell(): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex Relay Operator</title>
+    <style>
+      :root {
+        --bg: #efe7da;
+        --panel: #fffaf3;
+        --ink: #201813;
+        --muted: #77685d;
+        --line: #d7c8b9;
+        --accent: #225d4a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        background: linear-gradient(180deg, #f6ede2, var(--bg));
+        color: var(--ink);
+      }
+      .shell {
+        max-width: 720px;
+        margin: 48px auto;
+        padding: 0 16px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 22px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      input[type="password"] {
+        border: 1px solid var(--line);
+        background: #fffdf9;
+        color: var(--ink);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font: inherit;
+        min-width: 260px;
+      }
+      button {
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #fffaf3;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font: inherit;
+        cursor: pointer;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      pre {
+        white-space: pre-wrap;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fffdf9;
+        padding: 12px;
+        font-family: Consolas, "Courier New", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <h1>Codex Relay Operator</h1>
+        <p class="muted">Operator access is required.</p>
+        <p id="authStatus" class="muted">Checking operator access...</p>
+        <div id="loginRow" class="row" hidden>
+          <input id="operatorSecretInput" type="password" placeholder="Enter operator secret" />
+          <button id="operatorLoginBtn">Login</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      const el = (id) => document.getElementById(id);
+      async function getJson(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          ...options
+        });
+        const text = await response.text();
+        const payload = text ? JSON.parse(text) : {};
+        if (!response.ok) {
+          throw new Error(JSON.stringify(payload, null, 2));
+        }
+        return payload;
+      }
+      async function refreshAuth() {
+        const auth = await getJson("/api/operator/auth-state");
+        if (auth.authenticated) {
+          location.reload();
+          return;
+        }
+        el("authStatus").textContent = auth.mode === "secret"
+          ? "Operator secret required."
+          : "Operator access is local-only. Open this page from the relay host.";
+        el("loginRow").hidden = auth.mode !== "secret";
+      }
+      async function login() {
+        try {
+          const secret = el("operatorSecretInput").value;
+          await getJson("/api/operator/login", {
+            method: "POST",
+            body: JSON.stringify({ secret })
+          });
+          location.reload();
+        } catch (error) {
+          el("authStatus").textContent = "Operator login failed.";
+        }
+      }
+      el("operatorLoginBtn")?.addEventListener("click", () => void login());
+      el("operatorSecretInput")?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          void login();
+        }
+      });
+      void refreshAuth();
+    </script>
+  </body>
+</html>`;
 }
 
 function escapeHtml(value: string): string {
@@ -87,6 +228,37 @@ function inferOs(userAgent: string): string {
     return "Linux";
   }
   return "Unknown";
+}
+
+function inferBrowserFamily(userAgent: string): string {
+  const ua = userAgent.toLowerCase();
+  if (ua.includes("edg/")) {
+    return "Edge";
+  }
+  if (ua.includes("opr/") || ua.includes("opera")) {
+    return "Opera";
+  }
+  if (ua.includes("samsungbrowser/")) {
+    return "Samsung Internet";
+  }
+  if (ua.includes("firefox/")) {
+    return "Firefox";
+  }
+  if (ua.includes("chrome/") || ua.includes("crios/")) {
+    return "Chrome";
+  }
+  if (ua.includes("safari/")) {
+    return "Safari";
+  }
+  return "Browser";
+}
+
+function inferDeviceLabel(userAgent: string, os: string): string {
+  const browser = inferBrowserFamily(userAgent);
+  if (os && os !== "Unknown") {
+    return `${browser} on ${os}`;
+  }
+  return browser;
 }
 
 function getClientIp(req: IncomingMessage): string {
@@ -182,65 +354,25 @@ function requireOperatorAccess(
   return false;
 }
 
-async function lookupIpDetails(ipAddress: string): Promise<{
-  country?: string;
-  city?: string;
-  asn?: string;
-  isp?: string;
-}> {
-  if (!ipAddress) {
-    return {};
-  }
-
-  try {
-    const response = await fetch(`https://ipwho.is/${encodeURIComponent(ipAddress)}`);
-    if (!response.ok) {
-      return {};
-    }
-    const payload = (await response.json()) as Record<string, unknown>;
-    if (payload.success === false) {
-      return {};
-    }
-    return {
-      country: typeof payload.country === "string" ? payload.country : undefined,
-      city: typeof payload.city === "string" ? payload.city : undefined,
-      asn: typeof payload.connection === "object" && payload.connection
-        ? (typeof (payload.connection as Record<string, unknown>).asn === "number"
-            ? `AS${(payload.connection as Record<string, unknown>).asn}`
-            : typeof (payload.connection as Record<string, unknown>).asn === "string"
-              ? String((payload.connection as Record<string, unknown>).asn)
-              : undefined)
-        : undefined,
-      isp: typeof payload.connection === "object" && payload.connection
-        ? (typeof (payload.connection as Record<string, unknown>).isp === "string"
-            ? String((payload.connection as Record<string, unknown>).isp)
-            : undefined)
-        : undefined
-    };
-  } catch {
-    return {};
-  }
-}
-
 function buildSessionAlerts(logs: RelayLogEntry[]): Array<Record<string, string>> {
   const successfulPairings = logs
     .filter((entry) => entry.action === "pairingConsume" && entry.status === "ok" && entry.sessionId)
     .sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
 
   const alerts: Array<Record<string, string>> = [];
-  let lastIp = "";
+  let lastMaskedIp = "";
   let lastOs = "";
 
   for (const entry of successfulPairings) {
-    const currentIp = entry.ipAddress || "";
+    const currentMaskedIp = entry.maskedIp || "";
     const currentOs = entry.os || "";
 
-    if (lastIp && currentIp && currentIp !== lastIp) {
+    if (lastMaskedIp && currentMaskedIp && currentMaskedIp !== lastMaskedIp) {
       alerts.push({
         type: "ipChange",
         ts: entry.ts,
         sessionId: entry.sessionId || "",
-        message: `New client IP detected: ${currentIp} (previous ${lastIp})`
+        message: `New client network detected: ${currentMaskedIp} (previous ${lastMaskedIp})`
       });
     }
 
@@ -253,17 +385,21 @@ function buildSessionAlerts(logs: RelayLogEntry[]): Array<Record<string, string>
       });
     }
 
-    if (lastIp && lastOs && ((currentIp && currentIp !== lastIp) || (currentOs && currentOs !== lastOs))) {
+    if (
+      lastMaskedIp &&
+      lastOs &&
+      ((currentMaskedIp && currentMaskedIp !== lastMaskedIp) || (currentOs && currentOs !== lastOs))
+    ) {
       alerts.push({
         type: "fingerprintChange",
         ts: entry.ts,
         sessionId: entry.sessionId || "",
-        message: `Client fingerprint changed to ${currentIp || "unknown IP"} / ${currentOs || "unknown OS"}`
+        message: `Client fingerprint changed to ${currentMaskedIp || "unknown network"} / ${currentOs || "unknown OS"}`
       });
     }
 
-    if (currentIp) {
-      lastIp = currentIp;
+    if (currentMaskedIp) {
+      lastMaskedIp = currentMaskedIp;
     }
     if (currentOs) {
       lastOs = currentOs;
@@ -951,7 +1087,9 @@ async function main(): Promise<void> {
       }
 
       if (req.method === "GET" && url.pathname === "/operator") {
-        const html = await readFile(operatorClientPath, "utf8");
+        const html = hasOperatorAccess(req, config)
+          ? await readFile(operatorClientPath, "utf8")
+          : renderOperatorLoginShell();
         res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         res.end(html);
         return;
@@ -986,7 +1124,7 @@ async function main(): Promise<void> {
             kind: "http",
             action: "operatorLogin",
             status: "error",
-            ipAddress: getClientIp(req),
+            maskedIp: maskIpAddress(getClientIp(req)),
             message: "invalid operator secret"
           });
           sendJson(res, 401, { error: "invalid_operator_secret", mode: operatorMode(config) });
@@ -1002,7 +1140,7 @@ async function main(): Promise<void> {
           kind: "http",
           action: "operatorLogin",
           status: "ok",
-          ipAddress: getClientIp(req)
+          maskedIp: maskIpAddress(getClientIp(req))
         });
         return;
       }
@@ -1075,15 +1213,11 @@ async function main(): Promise<void> {
         const userAgent = String(req.headers["user-agent"] ?? "");
         const ipAddress = getClientIp(req);
         const os = inferOs(userAgent);
-        const ipDetails = await lookupIpDetails(ipAddress);
+        const deviceLabel = inferDeviceLabel(userAgent, os);
         const session = sessions.create(pairing.pairingId, config.sessionTtlMs, {
           ipAddress,
-          userAgent,
           os,
-          country: ipDetails.country,
-          city: ipDetails.city,
-          asn: ipDetails.asn,
-          isp: ipDetails.isp
+          deviceLabel
         });
         const signature = SessionStore.signSession(session.sessionId, config.sessionSecret);
         res.writeHead(200, {
@@ -1099,13 +1233,9 @@ async function main(): Promise<void> {
           action: "pairingConsume",
           sessionId: session.sessionId,
           status: "ok",
-          ipAddress,
-          userAgent,
+          maskedIp: maskIpAddress(ipAddress),
           os,
-          country: ipDetails.country,
-          city: ipDetails.city,
-          asn: ipDetails.asn,
-          isp: ipDetails.isp
+          message: deviceLabel
         });
         return;
       }
@@ -1241,36 +1371,44 @@ async function main(): Promise<void> {
         if (!requireOperatorAccess(req, res, config)) {
           return;
         }
-        const logs = sanitizeOperatorLogs(logger.list());
+        const events = sanitizeOperatorLogs(logger.list());
+        const sessionSummaries = sanitizeOperatorSessions(sessions.list());
+        const alerts = sanitizeOperatorAlerts(buildSessionAlerts(logger.list()));
         sendJson(res, 200, {
-          sessions: sanitizeOperatorSessions(sessions.list()),
-          logs,
-          alerts: buildSessionAlerts(logs),
+          sessions: sessionSummaries,
+          events,
+          alerts,
           relay: {
             baseUrl: config.publicBaseUrl,
             cookieMode: config.publicBaseUrl.startsWith("https://") ? "secure" : "non-secure"
           },
-          guidance: {
-            ifAppServerDown: [
-              "Start Codex app-server on ws://127.0.0.1:4500",
-              "Use scripts/start-codex-relay.ps1 to launch app-server and relay together"
-            ],
-            ifPortBusy: [
-              "Check whether relay is already running on CODEX_RELAY_PORT",
-              "Change CODEX_RELAY_PORT or stop the previous relay process"
-            ],
-            ifPhoneCannotConnect: [
-              "Verify the phone can reach the relay host URL",
-              "Use a public/tunneled HTTPS URL in CODEX_RELAY_BASE_URL",
-              "Do not expose raw app-server; expose only the relay"
-            ],
-            forDifferentNetwork: [
-              "Set CODEX_RELAY_HOST=0.0.0.0 if the relay itself must bind beyond localhost",
-              "Set CODEX_RELAY_BASE_URL to the real public HTTPS URL used by the phone",
-              "Keep CODEX_APP_SERVER_URL local on ws://127.0.0.1:4500",
-              "Prefer a tunnel or reverse proxy in front of the relay"
-            ]
-          }
+          summary: summarizeOperatorState({
+            sessions: sessionSummaries,
+            events,
+            alerts,
+            baseUrl: config.publicBaseUrl,
+            cookieMode: config.publicBaseUrl.startsWith("https://") ? "secure" : "non-secure"
+          })
+        });
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/operator/session") {
+        if (!requireOperatorAccess(req, res, config)) {
+          return;
+        }
+        const sessionId = url.searchParams.get("sessionId") ?? "";
+        if (!sessionId) {
+          sendJson(res, 400, { error: "sessionId is required" });
+          return;
+        }
+        const session = sessions.get(sessionId);
+        if (!session) {
+          sendJson(res, 404, { error: "session not found" });
+          return;
+        }
+        sendJson(res, 200, {
+          session: toOperatorSessionDetail(session)
         });
         return;
       }
@@ -1423,7 +1561,7 @@ async function main(): Promise<void> {
         `  relay: ${config.publicBaseUrl}`,
         `  app-server: ${config.appServerUrl}`,
         `  remote client: ${config.publicBaseUrl}/`,
-        `  operator page: ${config.publicBaseUrl}/operator`,
+        `  operator surface: protected`,
         `  pairing endpoint: POST ${config.publicBaseUrl}/api/pairing/start`,
         `  relay websocket: ws://${config.host}:${config.port}/ws`
       ].join("\n") + "\n"

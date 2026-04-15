@@ -93,7 +93,7 @@ Not yet product-finished:
 
 ## One-Click Remote Start
 
-For the Cloudflare Tunnel path, use:
+For the Cloudflare Tunnel path, use the launcher script instead of hardcoding a local Codex binary path:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
@@ -106,6 +106,11 @@ This starts:
 - local Codex app-server
 - local relay
 - named Cloudflare tunnel `codex-remote-relay`
+
+Public-docs rule:
+- do not publish version-pinned VS Code extension install paths
+- do not publish direct Codex executable path examples tied to one machine
+- keep executable discovery inside the launcher scripts, not in tracked docs/UI
 
 Behavior:
 - reuses healthy existing app-server / relay / tunnel processes when possible

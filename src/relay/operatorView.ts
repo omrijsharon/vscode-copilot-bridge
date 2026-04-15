@@ -1,6 +1,12 @@
-import { RelayLogEntry, RelaySession } from "./types";
+import {
+  OperatorAlertSummary,
+  OperatorEventSummary,
+  OperatorSessionDetail,
+  OperatorSessionSummary,
+  RelayLogEntry,
+  RelaySession
+} from "./types";
 
-const MAX_OPERATOR_USER_AGENT_LENGTH = 120;
 const MAX_OPERATOR_MESSAGE_LENGTH = 240;
 
 function truncate(value: string, maxLength: number): string {
@@ -10,11 +16,31 @@ function truncate(value: string, maxLength: number): string {
   return `${value.slice(0, Math.max(0, maxLength - 1))}\u2026`;
 }
 
-export function sanitizeOperatorUserAgent(userAgent: string | undefined): string | undefined {
-  if (!userAgent) {
+export function maskIpAddress(ipAddress: string | undefined): string | undefined {
+  if (!ipAddress) {
     return undefined;
   }
-  return truncate(userAgent, MAX_OPERATOR_USER_AGENT_LENGTH);
+  const trimmed = ipAddress.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed.includes(".")) {
+    const parts = trimmed.split(".");
+    if (parts.length === 4) {
+      return `${parts[0]}.${parts[1]}.x.x`;
+    }
+  }
+
+  if (trimmed.includes(":")) {
+    const parts = trimmed.split(":").filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}::x`;
+    }
+    return `${trimmed.slice(0, 4)}::x`;
+  }
+
+  return "[masked]";
 }
 
 export function sanitizeOperatorMessage(message: string | undefined): string | undefined {
@@ -27,33 +53,65 @@ export function sanitizeOperatorMessage(message: string | undefined): string | u
   return truncate(sanitized, MAX_OPERATOR_MESSAGE_LENGTH);
 }
 
-export function sanitizeOperatorLog(entry: RelayLogEntry): RelayLogEntry {
+export function toOperatorSessionSummary(session: RelaySession): OperatorSessionSummary {
   return {
-    ...entry,
-    userAgent: sanitizeOperatorUserAgent(entry.userAgent),
+    sessionId: session.sessionId,
+    pairingId: session.pairingId,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    os: session.os,
+    deviceLabel: session.deviceLabel,
+    maskedIp: maskIpAddress(session.ipAddress)
+  };
+}
+
+export function toOperatorSessionDetail(session: RelaySession): OperatorSessionDetail {
+  return {
+    sessionId: session.sessionId,
+    pairingId: session.pairingId,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    os: session.os,
+    deviceLabel: session.deviceLabel,
+    ipAddress: session.ipAddress
+  };
+}
+
+export function sanitizeOperatorSessions(sessions: RelaySession[]): OperatorSessionSummary[] {
+  return sessions.map(toOperatorSessionSummary);
+}
+
+export function sanitizeOperatorLog(entry: RelayLogEntry): OperatorEventSummary {
+  return {
+    ts: entry.ts,
+    kind: entry.kind,
+    action: entry.action,
+    sessionId: entry.sessionId,
+    threadId: entry.threadId,
+    status: entry.status,
+    maskedIp: entry.maskedIp,
+    os: entry.os,
     message: sanitizeOperatorMessage(entry.message)
   };
 }
 
-export function sanitizeOperatorLogs(entries: RelayLogEntry[]): RelayLogEntry[] {
+export function sanitizeOperatorLogs(entries: RelayLogEntry[]): OperatorEventSummary[] {
   return entries.map(sanitizeOperatorLog);
 }
 
-export function sanitizeOperatorSession(session: RelaySession): RelaySession {
-  return {
-    ...session,
-    userAgent: sanitizeOperatorUserAgent(session.userAgent)
-  };
-}
-
-export function sanitizeOperatorSessions(sessions: RelaySession[]): RelaySession[] {
-  return sessions.map(sanitizeOperatorSession);
+export function sanitizeOperatorAlerts(alerts: Array<Record<string, string>>): OperatorAlertSummary[] {
+  return alerts.map((alert) => ({
+    type: String(alert.type || "alert"),
+    ts: String(alert.ts || ""),
+    sessionId: alert.sessionId ? String(alert.sessionId) : undefined,
+    message: String(alert.message || "")
+  }));
 }
 
 export function summarizeOperatorState(input: {
-  sessions: RelaySession[];
-  logs: RelayLogEntry[];
-  alerts: Array<Record<string, string>>;
+  sessions: OperatorSessionSummary[];
+  events: OperatorEventSummary[];
+  alerts: OperatorAlertSummary[];
   baseUrl: string;
   cookieMode: string;
 }): Record<string, unknown> {
@@ -64,6 +122,6 @@ export function summarizeOperatorState(input: {
     },
     sessionsCount: input.sessions.length,
     alertsCount: input.alerts.length,
-    logsCount: input.logs.length
+    eventsCount: input.events.length
   };
 }

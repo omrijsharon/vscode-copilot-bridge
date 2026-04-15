@@ -34,12 +34,8 @@ export interface RelaySession {
   createdAt: number;
   expiresAt: number;
   ipAddress?: string;
-  userAgent?: string;
   os?: string;
-  country?: string;
-  city?: string;
-  asn?: string;
-  isp?: string;
+  deviceLabel?: string;
 }
 
 export interface RpcRequest {
@@ -105,12 +101,46 @@ export interface RelayLogEntry {
   sessionId?: string;
   threadId?: string;
   status: "ok" | "error";
-  ipAddress?: string;
-  userAgent?: string;
+  maskedIp?: string;
   os?: string;
-  country?: string;
-  city?: string;
-  asn?: string;
-  isp?: string;
   message?: string;
+}
+
+export interface OperatorSessionSummary {
+  sessionId: string;
+  pairingId: string;
+  createdAt: number;
+  expiresAt: number;
+  os?: string;
+  deviceLabel?: string;
+  maskedIp?: string;
+}
+
+export interface OperatorSessionDetail {
+  sessionId: string;
+  pairingId: string;
+  createdAt: number;
+  expiresAt: number;
+  os?: string;
+  deviceLabel?: string;
+  ipAddress?: string;
+}
+
+export interface OperatorEventSummary {
+  ts: string;
+  kind: "http" | "ws";
+  action: string;
+  sessionId?: string;
+  threadId?: string;
+  status: "ok" | "error";
+  maskedIp?: string;
+  os?: string;
+  message?: string;
+}
+
+export interface OperatorAlertSummary {
+  type: string;
+  ts: string;
+  sessionId?: string;
+  message: string;
 }

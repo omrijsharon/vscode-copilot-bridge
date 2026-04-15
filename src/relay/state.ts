@@ -62,7 +62,7 @@ export class SessionStore {
     ttlMs: number,
     metadata?: Pick<
       RelaySession,
-      "ipAddress" | "userAgent" | "os" | "country" | "city" | "asn" | "isp"
+      "ipAddress" | "os" | "deviceLabel"
     >
   ): RelaySession {
     const createdAt = Date.now();
@@ -72,12 +72,8 @@ export class SessionStore {
       createdAt,
       expiresAt: createdAt + ttlMs,
       ipAddress: metadata?.ipAddress,
-      userAgent: metadata?.userAgent,
       os: metadata?.os,
-      country: metadata?.country,
-      city: metadata?.city,
-      asn: metadata?.asn,
-      isp: metadata?.isp
+      deviceLabel: metadata?.deviceLabel
     };
     this.sessions.set(session.sessionId, session);
     return session;

@@ -101,16 +101,21 @@ Requirements:
 For a step-by-step Cloudflare flow, use:
 - [CLOUDFLARE_TUNNEL_SETUP.md](CLOUDFLARE_TUNNEL_SETUP.md)
 
-## Local Start Example
+## Recommended Start Path
 
-Start app-server:
+Prefer the launcher script for public/shareable instructions.
+It auto-detects the local Codex app-server binary and avoids machine-specific executable paths in docs.
 
 ```powershell
-# Start the bundled Codex app-server binary for your installed OpenAI ChatGPT VS Code extension.
-# The one-click launcher script auto-detects this path.
+powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
+  -PublicBaseUrl "https://YOUR_PUBLIC_HOST" `
+  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE" `
+  -OperatorSecret "PUT_A_SEPARATE_OPERATOR_SECRET_HERE"
 ```
 
-Then start relay with remote-ready config:
+## Manual Relay Start Example
+
+If you need to start the relay manually after launching `codex app-server` through your own local workflow, use:
 
 ```powershell
 $env:CODEX_RELAY_HOST = "0.0.0.0"
@@ -160,4 +165,4 @@ Use this file for public/shareable instructions.
 
 For your own deployment-specific notes:
 - keep them under `docs-private/`
-- do not commit real domains, tunnel names, user paths, or secrets into tracked docs
+- do not commit real domains, tunnel names, user paths, secrets, or version-pinned executable paths into tracked docs

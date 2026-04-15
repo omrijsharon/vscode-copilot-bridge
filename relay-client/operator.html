@@ -160,6 +160,26 @@
         color: #8b2e2a;
         background: #fff1ef;
       }
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(32, 24, 19, 0.4);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 20;
+      }
+      .modal.open {
+        display: flex;
+      }
+      .modal-card {
+        width: min(640px, 100%);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+      }
       @media (max-width: 860px) {
         .pairing-grid {
           grid-template-columns: 1fr;
@@ -172,7 +192,7 @@
       <div class="card">
         <h1>Codex Relay Operator</h1>
         <p class="muted">
-          Local operator surface for pairing and session inspection. This is the desktop control page for the relay.
+          Operator controls for pairing, sessions, alerts, and health.
         </p>
       </div>
 
@@ -206,8 +226,7 @@
           <div>
             <pre id="pairingBox">Preparing first pairing...</pre>
             <div class="hint">
-              Scan the QR code from the phone or open the pair URL directly on the phone. The QR is generated locally
-              by the relay and a fresh pairing is created automatically when this page loads.
+              Use the QR code or pair URL to authorize a device.
             </div>
             <pre id="pairingsBox">No pairing summaries loaded yet.</pre>
           </div>
@@ -222,10 +241,6 @@
         </div>
         <div id="sessionsList" class="session-list">
           <div class="hint">No sessions loaded yet.</div>
-        </div>
-        <div class="hint">
-          `Invalidate All Sessions` logs out every currently paired/authenticated device. Each device will need to pair
-          again.
         </div>
       </div>
 
@@ -260,49 +275,16 @@
         <button id="refreshHealthBtn">Refresh Health</button>
         <pre id="healthBox">No health loaded yet.</pre>
       </div>
-
-      <div class="card">
-        <h2>Restart Guidance</h2>
-        <pre>1. Start the local stack with the launcher:
-powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
-  -PublicBaseUrl "https://YOUR_PUBLIC_HOST" `
-  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE" `
-  -OperatorSecret "PUT_A_SEPARATE_OPERATOR_SECRET_HERE"
-
-2. Operator page:
-https://YOUR_PUBLIC_HOST/operator
-
-3. Remote client:
-https://YOUR_PUBLIC_HOST/</pre>
       </div>
 
-      <div class="card">
-        <h2>One-Click Start</h2>
-        <pre>powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
-  -PublicBaseUrl "https://YOUR_PUBLIC_HOST" `
-  -SessionSecret "PUT_A_LONG_RANDOM_SECRET_HERE" `
-  -OperatorSecret "PUT_A_SEPARATE_OPERATOR_SECRET_HERE"</pre>
-      </div>
-
-      <div class="card">
-        <h2>Different-Network Setup</h2>
-        <pre>For phone access from another network:
-
-1. Keep app-server local:
-ws://127.0.0.1:4500
-
-2. Expose only the relay.
-
-3. Set relay env vars before start:
-CODEX_RELAY_HOST=0.0.0.0
-CODEX_RELAY_BASE_URL=https://YOUR_PUBLIC_HOST
-CODEX_RELAY_SESSION_SECRET=your-random-secret
-CODEX_RELAY_OPERATOR_SECRET=your-separate-operator-secret
-
-4. Use HTTPS/WSS for the phone path.
-
-5. Do not expose raw app-server directly.</pre>
-      </div>
+      <div id="sessionDetailModal" class="modal" aria-hidden="true">
+        <div class="modal-card">
+          <div class="row">
+            <h2>Session Details</h2>
+            <button id="closeSessionDetailBtn">Close</button>
+          </div>
+          <pre id="sessionDetailBox">No session selected.</pre>
+        </div>
       </div>
     </div>
 
@@ -378,6 +360,24 @@ CODEX_RELAY_OPERATOR_SECRET=your-separate-operator-secret
         el("sessionsList").innerHTML = '<div class="hint">No active sessions.</div>';
         el("alertsList").innerHTML = '<div class="hint">No alerts.</div>';
         el("eventsList").innerHTML = '<div class="hint">No events recorded yet.</div>';
+        closeSessionDetail();
+      }
+
+      function openSessionDetail(payload) {
+        el("sessionDetailBox").textContent = JSON.stringify(payload, null, 2);
+        el("sessionDetailModal").classList.add("open");
+        el("sessionDetailModal").setAttribute("aria-hidden", "false");
+      }
+
+      function closeSessionDetail() {
+        el("sessionDetailModal").classList.remove("open");
+        el("sessionDetailModal").setAttribute("aria-hidden", "true");
+        el("sessionDetailBox").textContent = "No session selected.";
+      }
+
+      async function viewSessionDetail(sessionId) {
+        const result = await getJson(`/api/operator/session?sessionId=${encodeURIComponent(sessionId)}`);
+        openSessionDetail(result);
       }
 
       function renderQrSvg(svg) {
@@ -425,19 +425,18 @@ CODEX_RELAY_OPERATOR_SECRET=your-separate-operator-secret
         const result = await getJson("/api/operator/state");
         latestState = result;
         el("stateBox").textContent = JSON.stringify(
-          {
+          result.summary || {
             relay: result.relay,
             sessionsCount: Array.isArray(result.sessions) ? result.sessions.length : 0,
             alertsCount: Array.isArray(result.alerts) ? result.alerts.length : 0,
-            logsCount: Array.isArray(result.logs) ? result.logs.length : 0,
-            guidance: result.guidance
+            eventsCount: Array.isArray(result.events) ? result.events.length : 0
           },
           null,
           2
         );
         renderSessions(result.sessions || []);
         renderAlerts(result.alerts || []);
-        renderEvents(result.logs || []);
+        renderEvents(result.events || []);
       }
 
       async function refreshPairings() {
@@ -462,18 +461,18 @@ CODEX_RELAY_OPERATOR_SECRET=your-separate-operator-secret
             `pairingId: ${session.pairingId}\n` +
             `createdAt: ${new Date(session.createdAt).toLocaleString()}\n` +
             `expiresAt: ${new Date(session.expiresAt).toLocaleString()}\n` +
-            `ipAddress: ${session.ipAddress || "unknown"}\n` +
-            `country: ${session.country || "unknown"}\n` +
-            `city: ${session.city || "unknown"}\n` +
-            `asn: ${session.asn || "unknown"}\n` +
-            `isp: ${session.isp || "unknown"}\n` +
             `os: ${session.os || "Unknown"}\n` +
-            `userAgent: ${session.userAgent || "unknown"}`;
+            `deviceLabel: ${session.deviceLabel || "unknown"}\n` +
+            `maskedIp: ${session.maskedIp || "unknown"}`;
           const row = document.createElement("div");
           row.className = "row";
+          const detailBtn = document.createElement("button");
+          detailBtn.textContent = "View Details";
+          detailBtn.onclick = () => void viewSessionDetail(session.sessionId);
           const revokeBtn = document.createElement("button");
           revokeBtn.textContent = "Revoke This Session";
           revokeBtn.onclick = () => void revokeSession(session.sessionId);
+          row.appendChild(detailBtn);
           row.appendChild(revokeBtn);
           item.appendChild(meta);
           item.appendChild(row);
@@ -556,9 +555,8 @@ CODEX_RELAY_OPERATOR_SECRET=your-separate-operator-secret
             `time: ${entry.ts || "unknown"}\n` +
             `sessionId: ${entry.sessionId || "-"}\n` +
             `threadId: ${entry.threadId || "-"}\n` +
-            `ipAddress: ${entry.ipAddress || "-"}\n` +
-            `os: ${entry.os || "-"}\n` +
-            `userAgent: ${entry.userAgent || "-"}`;
+            `maskedIp: ${entry.maskedIp || "-"}\n` +
+            `os: ${entry.os || "-"}`;
 
           item.appendChild(head);
           item.appendChild(meta);
@@ -590,6 +588,12 @@ CODEX_RELAY_OPERATOR_SECRET=your-separate-operator-secret
       el("refreshHealthBtn").onclick = () => void refreshHealth();
       el("operatorLoginBtn").onclick = () => void operatorLogin();
       el("operatorLogoutBtn").onclick = () => void operatorLogout();
+      el("closeSessionDetailBtn").onclick = () => closeSessionDetail();
+      el("sessionDetailModal").addEventListener("click", (event) => {
+        if (event.target === el("sessionDetailModal")) {
+          closeSessionDetail();
+        }
+      });
       el("operatorSecretInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
           event.preventDefault();

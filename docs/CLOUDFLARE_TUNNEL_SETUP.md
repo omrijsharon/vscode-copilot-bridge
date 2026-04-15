@@ -59,7 +59,8 @@ This creates the DNS record that points your hostname to the named tunnel.
 
 ## Step 4. Start the Local Stack
 
-Use the launcher script and set the public URL to the hostname you routed above:
+Use the launcher script and set the public URL to the hostname you routed above.
+This is the supported public-docs flow because it auto-detects the local Codex binary and avoids stale machine-specific executable examples:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\start-codex-remote-stack.ps1 `
